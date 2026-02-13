@@ -28,6 +28,14 @@ export default function Nav() {
           Sessions
         </NavLink>
       </div>
+      <a
+        href="https://claude.ai/settings/usage"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="ml-auto rounded-lg px-4 py-2 text-sm font-medium text-text-secondary transition-all hover:bg-bg-tertiary hover:text-text-primary hover:no-underline"
+      >
+        Usage &nearr;
+      </a>
     </nav>
   );
 }
