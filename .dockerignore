@@ -1,0 +1,7 @@
+frontend/node_modules/
+__pycache__/
+*.pyc
+.git/
+.claude/
+.DS_Store
+static/

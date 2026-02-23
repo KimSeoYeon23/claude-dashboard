@@ -1,0 +1,29 @@
+services:
+  dashboard:
+    build: .
+    expose:
+      - "8420"
+    volumes:
+      - dashboard-data:/app/data
+    environment:
+      - SYNC_TOKENS=user1:token1:user1@example.com,user2:token2:user2@example.com
+      - SMTP_HOST=smtp.example.com
+      - SMTP_PORT=587
+      - SMTP_USER=dashboard@example.com
+      - SMTP_PASS=your-password
+      - SMTP_FROM=dashboard@example.com
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+    restart: unless-stopped
+
+volumes:
+  dashboard-data:
+  caddy-data:

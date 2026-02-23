@@ -150,7 +150,7 @@ export default function AgentDetail() {
       </div>
 
       {/* Meta info */}
-      <div className="mb-6 rounded-lg border border-border bg-bg-card p-5">
+      <div className="mb-6 rounded-xl bg-bg-card p-5">
         <div className="grid grid-cols-2 gap-4 text-sm max-md:grid-cols-1">
           <div>
             <span className="text-text-muted">Session: </span>
@@ -181,17 +181,17 @@ export default function AgentDetail() {
       {/* Tool Usage */}
       {toolEntries.length > 0 && (
         <div className="mb-6">
-          <h3 className="mb-3 text-sm font-semibold text-text-secondary">
+          <h3 className="mb-3 text-sm font-medium text-text-muted">
             Tools Used ({toolEntries.length})
           </h3>
           <div className="flex flex-wrap gap-2">
             {toolEntries.map(([name, count]) => (
               <span
                 key={name}
-                className="inline-flex items-center gap-1.5 rounded-2xl border border-border bg-bg-tertiary px-3 py-1 text-[13px] text-text-secondary"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-bg-tertiary px-3 py-1 text-[13px] text-text-secondary"
               >
                 {name}
-                <span className="rounded-xl bg-purple/80 px-1.5 py-px text-[11px] font-bold text-white">
+                <span className="rounded-md bg-purple/80 px-1.5 py-px text-[11px] font-bold text-white">
                   {count}
                 </span>
               </span>
@@ -201,7 +201,7 @@ export default function AgentDetail() {
       )}
 
       {/* Recent Activity Timeline */}
-      <h3 className="mb-4 text-sm font-semibold text-text-secondary">
+      <h3 className="mb-4 text-sm font-medium text-text-muted">
         Live Activity ({sortedActivity.length})
       </h3>
       <div className="flex flex-col gap-2">
@@ -260,7 +260,7 @@ function ActivityItem({
 
   return (
     <div
-      className={`rounded-lg border border-border border-l-[3px] ${borderColor} bg-bg-card px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,.3)] ${hasFullText ? "cursor-pointer transition-colors hover:bg-bg-tertiary" : ""}`}
+      className={`rounded-xl border-l-[3px] ${borderColor} bg-bg-card px-4 py-3 ${hasFullText ? "cursor-pointer transition-colors hover:bg-bg-tertiary" : ""}`}
       onClick={hasFullText ? onToggle : undefined}
     >
       <div className="mb-1 flex items-center gap-2">
@@ -268,7 +268,7 @@ function ActivityItem({
           className={`inline-block h-1.5 w-1.5 rounded-full ${dotColor}`}
         />
         <span
-          className={`rounded px-1.5 py-px text-[10px] font-bold uppercase tracking-wide ${tagColor}`}
+          className={`rounded px-1.5 py-px text-[10px] font-bold ${tagColor}`}
         >
           {tagLabel}
         </span>
@@ -293,8 +293,8 @@ function ActivityItem({
 function BackButton() {
   return (
     <Link
-      to="/"
-      className="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-tertiary px-3.5 py-1.5 text-[13px] text-text-secondary transition-all hover:border-accent hover:text-text-primary hover:no-underline"
+      to="/dashboard"
+      className="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-1.5 text-[13px] text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary hover:no-underline"
     >
       &larr; Back to Dashboard
     </Link>

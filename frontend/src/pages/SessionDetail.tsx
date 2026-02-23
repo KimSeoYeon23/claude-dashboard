@@ -77,10 +77,10 @@ export default function SessionDetail() {
           {toolEntries.map(([name, count]) => (
             <span
               key={name}
-              className="inline-flex items-center gap-1.5 rounded-2xl border border-border bg-bg-tertiary px-3 py-1 text-[13px] text-text-secondary"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-bg-tertiary px-3 py-1 text-[13px] text-text-secondary"
             >
               {name}
-              <span className="rounded-xl bg-accent px-1.5 py-px text-[11px] font-bold text-white">
+              <span className="rounded-md bg-accent px-1.5 py-px text-[11px] font-bold text-white">
                 {count}
               </span>
             </span>
@@ -90,8 +90,8 @@ export default function SessionDetail() {
 
       {/* Modified Files */}
       {(data.filesModified || []).length > 0 && (
-        <div className="mb-6 rounded-lg border border-border bg-bg-card px-5 py-4">
-          <h3 className="mb-3 text-sm font-semibold text-text-secondary">
+        <div className="mb-6 rounded-xl bg-bg-card px-5 py-4">
+          <h3 className="mb-3 text-sm font-medium text-text-muted">
             Modified Files ({data.filesModified.length})
           </h3>
           <ul className="max-h-[200px] list-none overflow-y-auto">
@@ -110,14 +110,14 @@ export default function SessionDetail() {
       {/* Subagents */}
       {(data.subagentIds || []).length > 0 && (
         <div className="mb-6">
-          <h3 className="mb-3 text-sm font-semibold text-text-secondary">
+          <h3 className="mb-3 text-sm font-medium text-text-muted">
             Subagents ({data.subagentIds.length})
           </h3>
           <div className="flex flex-wrap gap-2">
             {data.subagentIds.map((sid) => (
               <span
                 key={sid}
-                className="inline-block rounded-2xl border border-border bg-bg-tertiary px-3 py-1 font-mono text-xs text-text-muted"
+                className="inline-block rounded-md border border-border bg-bg-tertiary px-3 py-1 font-mono text-xs text-text-muted"
               >
                 {sid.slice(0, 8)}...
               </span>
@@ -159,7 +159,7 @@ const MessageTimeline = ({
   return (
     <div ref={ref}>
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-text-secondary">
+        <h3 className="text-text-muted">
           Message Timeline ({fmtNum(total)})
         </h3>
         {totalPages > 1 && (
@@ -192,11 +192,11 @@ const MessageTimeline = ({
             return (
               <div
                 key={start + i}
-                className={`rounded-lg border border-border border-l-[3px] ${roleClass} bg-bg-card px-[18px] py-3.5 shadow-[0_1px_3px_rgba(0,0,0,.3)]`}
+                className={`rounded-xl border-l-[3px] ${roleClass} bg-bg-card px-[18px] py-3.5`}
               >
                 <div className="mb-2 flex items-center gap-2">
                   <span
-                    className={`rounded px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${tagClass}`}
+                    className={`rounded px-2 py-0.5 text-[11px] font-bold ${tagClass}`}
                   >
                     {msg.role}
                   </span>
@@ -272,14 +272,14 @@ const MessageTimeline = ({
           <button
             disabled={page <= 1}
             onClick={() => onPageChange(1)}
-            className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-sm text-text-primary transition-all hover:border-accent hover:bg-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-border px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-40"
           >
             &laquo;
           </button>
           <button
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
-            className="rounded-lg border border-border bg-bg-tertiary px-3.5 py-1.5 text-sm text-text-primary transition-all hover:border-accent hover:bg-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-border px-3.5 py-1.5 text-sm text-text-primary transition-colors hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-40"
           >
             &larr; Prev
           </button>
@@ -289,14 +289,14 @@ const MessageTimeline = ({
           <button
             disabled={page >= totalPages}
             onClick={() => onPageChange(page + 1)}
-            className="rounded-lg border border-border bg-bg-tertiary px-3.5 py-1.5 text-sm text-text-primary transition-all hover:border-accent hover:bg-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-border px-3.5 py-1.5 text-sm text-text-primary transition-colors hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-40"
           >
             Next &rarr;
           </button>
           <button
             disabled={page >= totalPages}
             onClick={() => onPageChange(totalPages)}
-            className="rounded-lg border border-border bg-bg-tertiary px-3 py-1.5 text-sm text-text-primary transition-all hover:border-accent hover:bg-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-border px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-40"
           >
             &raquo;
           </button>
@@ -310,7 +310,7 @@ function BackButton() {
   return (
     <Link
       to="/sessions"
-      className="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg-tertiary px-3.5 py-1.5 text-[13px] text-text-secondary transition-all hover:border-accent hover:text-text-primary hover:no-underline"
+      className="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-1.5 text-[13px] text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary hover:no-underline"
     >
       &larr; Back to Sessions
     </Link>

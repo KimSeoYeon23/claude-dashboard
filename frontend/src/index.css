@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-primary: #0d1117;
-  --color-bg-secondary: #161b22;
-  --color-bg-tertiary: #21262d;
-  --color-bg-card: #1c2128;
-  --color-border: #30363d;
+  --color-bg-primary: #09090b;
+  --color-bg-secondary: #0a0a0b;
+  --color-bg-tertiary: #18181b;
+  --color-bg-card: #111113;
+  --color-border: #27272a;
   --color-text-primary: #e6edf3;
   --color-text-secondary: #8b949e;
   --color-text-muted: #6e7681;
-  --color-accent: #58a6ff;
-  --color-accent-hover: #79c0ff;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #60a5fa;
   --color-green: #3fb950;
   --color-orange: #d29922;
   --color-red: #f85149;
@@ -32,16 +32,22 @@ body {
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
   line-height: 1.5;
+  letter-spacing: -0.01em;
   min-height: 100vh;
 }
 
-a {
-  color: var(--color-accent);
-  text-decoration: none;
-}
-a:hover {
-  color: var(--color-accent-hover);
-  text-decoration: underline;
+@layer base {
+  a {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+  }
+  button, a, [role="button"] {
+    cursor: pointer;
+  }
 }
 
 @keyframes spin {

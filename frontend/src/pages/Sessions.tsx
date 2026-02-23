@@ -89,14 +89,14 @@ export default function Sessions() {
       </div>
 
       {/* Table */}
-      <div className="mb-6 overflow-hidden rounded-lg border border-border bg-bg-card shadow-[0_1px_3px_rgba(0,0,0,.3)]">
+      <div className="mb-6 overflow-hidden rounded-xl bg-bg-card">
         <table className="w-full border-collapse">
           <thead>
             <tr>
               {["Project", "Session", "First Message", "Date"].map((h) => (
                 <th
                   key={h}
-                  className="border-b border-border bg-bg-secondary px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-text-muted"
+                  className="border-b border-border px-6 py-2.5 text-left text-xs font-medium text-text-muted"
                 >
                   {h}
                 </th>
@@ -113,23 +113,23 @@ export default function Sessions() {
                   key={`${s.sessionId}-${i}`}
                   className="border-b border-border last:border-b-0 hover:bg-bg-tertiary"
                 >
-                  <td className="px-5 py-3 text-sm text-text-secondary">
+                  <td className="px-6 py-3 text-sm text-text-secondary">
                     <span
-                      className="inline-block max-w-[200px] truncate rounded-xl bg-bg-tertiary px-2 py-0.5 text-xs text-text-secondary"
+                      className="inline-block max-w-[200px] truncate rounded-md bg-bg-tertiary px-2 py-0.5 text-xs text-text-secondary"
                       title={s.project}
                     >
                       {pName}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-sm">
+                  <td className="px-6 py-3 text-sm">
                     <Link to={`/session/${s.sessionId}`} className="text-accent">
                       {s.sessionId?.slice(0, 8)}...
                     </Link>
                   </td>
-                  <td className="px-5 py-3 text-sm text-text-secondary">
+                  <td className="px-6 py-3 text-sm text-text-secondary">
                     {(s.display || "").slice(0, 80)}
                   </td>
-                  <td className="px-5 py-3 text-sm text-text-secondary">
+                  <td className="px-6 py-3 text-sm text-text-secondary">
                     {fmtDateTime(s.timestamp)}
                   </td>
                 </tr>
@@ -143,7 +143,7 @@ export default function Sessions() {
           <button
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="rounded-lg border border-border bg-bg-tertiary px-3.5 py-1.5 text-sm text-text-primary transition-all hover:border-accent hover:bg-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-border px-3.5 py-1.5 text-sm text-text-primary transition-colors hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-40"
           >
             &larr; Prev
           </button>
@@ -153,7 +153,7 @@ export default function Sessions() {
           <button
             disabled={(sessions?.page ?? 0) >= (sessions?.totalPages ?? 0)}
             onClick={() => setPage((p) => p + 1)}
-            className="rounded-lg border border-border bg-bg-tertiary px-3.5 py-1.5 text-sm text-text-primary transition-all hover:border-accent hover:bg-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-border px-3.5 py-1.5 text-sm text-text-primary transition-colors hover:bg-bg-tertiary disabled:cursor-not-allowed disabled:opacity-40"
           >
             Next &rarr;
           </button>

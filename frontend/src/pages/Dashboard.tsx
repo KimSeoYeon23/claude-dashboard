@@ -19,6 +19,7 @@ import {
   type SessionsResponse,
   type Agent,
 } from "../api";
+import { useAuth } from "../auth";
 import StatCard from "../components/StatCard";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
@@ -29,6 +30,53 @@ import {
   fmtTokens,
   projectShortName,
 } from "../utils/formatters";
+
+function generateDemoData(): { stats: Stats; sessions: SessionsResponse } {
+  const today = new Date();
+  const daily = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - 29 + i);
+    return {
+      date: d.toISOString().split("T")[0],
+      messageCount: Math.floor(Math.random() * 80) + 20,
+      toolCallCount: Math.floor(Math.random() * 50) + 10,
+    };
+  });
+
+  const hourCounts: Record<string, number> = {};
+  for (let h = 0; h < 24; h++) {
+    hourCounts[h] = h >= 9 && h <= 22 ? Math.floor(Math.random() * 30) + 5 : Math.floor(Math.random() * 5);
+  }
+
+  const stats: Stats = {
+    totalSessions: 847,
+    totalMessages: 12453,
+    firstSessionDate: "2025-01-15",
+    dailyActivity: daily,
+    hourCounts,
+    modelUsage: {
+      "claude-sonnet-4-20250514": { inputTokens: 2800000, outputTokens: 1200000 },
+      "claude-opus-4-20250514": { inputTokens: 1500000, outputTokens: 850000 },
+      "claude-haiku-3.5-20241022": { inputTokens: 600000, outputTokens: 350000 },
+    },
+  };
+
+  const sessions: SessionsResponse = {
+    sessions: [
+      { sessionId: "a1b2c3d4-demo-1111", project: "/Users/demo/my-app", display: "React 컴포넌트에 다크모드 기능 추가", timestamp: new Date(Date.now() - 3600000).toISOString() },
+      { sessionId: "e5f6g7h8-demo-2222", project: "/Users/demo/api-server", display: "JWT 인증 미들웨어 구현", timestamp: new Date(Date.now() - 7200000).toISOString() },
+      { sessionId: "i9j0k1l2-demo-3333", project: "/Users/demo/my-app", display: "성능 최적화: 불필요한 리렌더링 제거", timestamp: new Date(Date.now() - 14400000).toISOString() },
+      { sessionId: "m3n4o5p6-demo-4444", project: "/Users/demo/infra", display: "Docker Compose 설정 및 CI/CD 파이프라인 구성", timestamp: new Date(Date.now() - 28800000).toISOString() },
+      { sessionId: "q7r8s9t0-demo-5555", project: "/Users/demo/api-server", display: "WebSocket 실시간 알림 기능 추가", timestamp: new Date(Date.now() - 43200000).toISOString() },
+    ],
+    total: 5,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  };
+
+  return { stats, sessions };
+}
 
 ChartJS.register(
   CategoryScale,
@@ -43,11 +91,14 @@ ChartJS.register(
 );
 
 ChartJS.defaults.color = "#8b949e";
-ChartJS.defaults.borderColor = "#30363d";
+ChartJS.defaults.borderColor = "#27272a";
 ChartJS.defaults.font.family =
   "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
 export default function Dashboard() {
+  const { token } = useAuth();
+  const isDemo = !token;
+
   const [stats, setStats] = useState<Stats | null>(null);
   const [sessions, setSessions] = useState<SessionsResponse | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -55,6 +106,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isDemo) {
+      const demo = generateDemoData();
+      setStats(demo.stats);
+      setSessions(demo.sessions);
+      setLoading(false);
+      return;
+    }
+
     Promise.all([
       fetchApi<Stats>("/api/stats"),
       fetchApi<SessionsResponse>("/api/sessions?limit=10"),
@@ -66,11 +125,10 @@ export default function Dashboard() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
 
-    // agents는 실패해도 대시보드 렌더링에 영향 없도록 별도 fetch
     fetchApi<{ agents: Agent[] }>("/api/agents")
       .then((ag) => setAgents(ag.agents || []))
       .catch(() => {});
-  }, []);
+  }, [isDemo]);
 
   if (loading) return <Loading text="Loading dashboard..." />;
   if (error) return <ErrorMessage message={`Failed to load dashboard: ${error}`} />;
@@ -91,7 +149,7 @@ export default function Dashboard() {
   const modelUsage = stats.modelUsage || {};
   const modelNames = Object.keys(modelUsage);
   const modelColors = [
-    "#58a6ff",
+    "#3b82f6",
     "#3fb950",
     "#d29922",
     "#f85149",
@@ -101,10 +159,25 @@ export default function Dashboard() {
 
   return (
     <>
+      {/* Demo Banner */}
+      {isDemo && (
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-accent/30 bg-accent/5 px-5 py-3">
+          <p className="text-sm text-text-secondary">
+            예시 데이터입니다. <span className="text-text-primary font-medium">로그인</span>하면 실제 데이터를 볼 수 있습니다.
+          </p>
+          <Link
+            to="/setup"
+            className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          >
+            시작하기
+          </Link>
+        </div>
+      )}
+
       {/* Active Agents */}
       {agents.length > 0 && (
-        <div className="mb-6">
-          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-text-secondary">
+        <div className="mb-8">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-medium text-text-muted">
             <span className="inline-block h-2 w-2 animate-[pulse_2s_ease-in-out_infinite] rounded-full bg-green" />
             Active Agents ({agents.length})
           </h3>
@@ -115,7 +188,7 @@ export default function Dashboard() {
                 <Link
                   to={`/agent/${a.pid}`}
                   key={a.pid}
-                  className="block rounded-lg border border-border border-l-[3px] border-l-green bg-bg-card p-4 shadow-[0_1px_3px_rgba(0,0,0,.3)] transition-all hover:border-green/50 hover:no-underline"
+                  className="block rounded-xl bg-bg-card p-4 transition-colors hover:bg-bg-tertiary hover:no-underline"
                 >
                   <div className="mb-2 flex items-center gap-2">
                     <span className="rounded bg-green/10 px-2 py-0.5 font-mono text-xs font-bold text-green">
@@ -142,7 +215,7 @@ export default function Dashboard() {
                       {a.sessionId ? `${a.sessionId.slice(0, 8)}...` : "-"}
                     </span>
                     {a.model && (
-                      <span className="rounded-xl bg-purple/15 px-2 py-px text-[11px] font-semibold text-purple">
+                      <span className="rounded-md bg-purple/15 px-2 py-px text-[11px] font-semibold text-purple">
                         {a.model.replace("claude-", "").replace(/-\d{8}$/, "")}
                       </span>
                     )}
@@ -158,7 +231,7 @@ export default function Dashboard() {
                   {/* 최근 활동 */}
                   {(a.recentActivity || []).length > 0 && (
                     <div className="mt-2 border-t border-border pt-2">
-                      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                      <div className="mb-1 text-[10px] text-text-muted">
                         Recent Activity
                       </div>
                       <div className="flex flex-col gap-1">
@@ -192,7 +265,7 @@ export default function Dashboard() {
       )}
 
       {/* Stats Cards */}
-      <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+      <div className="mb-8 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         <StatCard
           label="Total Sessions"
           value={fmtNum(stats.totalSessions)}
@@ -204,10 +277,10 @@ export default function Dashboard() {
       </div>
 
       {/* Charts */}
-      <div className="mb-6 grid grid-cols-2 gap-4 max-md:grid-cols-1">
+      <div className="mb-8 grid grid-cols-2 gap-4 max-md:grid-cols-1">
         {/* Daily Activity */}
-        <div className="col-span-full rounded-lg border border-border bg-bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,.3)]">
-          <h3 className="mb-4 text-sm font-semibold text-text-secondary">
+        <div className="col-span-full rounded-xl bg-bg-card p-6">
+          <h3 className="mb-4 text-sm font-medium text-text-muted">
             Daily Activity
           </h3>
           <div className="relative h-[280px] w-full">
@@ -218,8 +291,8 @@ export default function Dashboard() {
                   {
                     label: "Messages",
                     data: daily.map((d) => d.messageCount),
-                    borderColor: "#58a6ff",
-                    backgroundColor: "rgba(88,166,255,.1)",
+                    borderColor: "#3b82f6",
+                    backgroundColor: "rgba(59,130,246,.1)",
                     fill: true,
                     tension: 0.3,
                     pointRadius: 1,
@@ -253,8 +326,8 @@ export default function Dashboard() {
         </div>
 
         {/* Hourly Activity */}
-        <div className="rounded-lg border border-border bg-bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,.3)]">
-          <h3 className="mb-4 text-sm font-semibold text-text-secondary">
+        <div className="rounded-xl bg-bg-card p-6">
+          <h3 className="mb-4 text-sm font-medium text-text-muted">
             Activity by Hour
           </h3>
           <div className="relative h-[220px] w-full">
@@ -287,8 +360,8 @@ export default function Dashboard() {
         </div>
 
         {/* Model Tokens */}
-        <div className="rounded-lg border border-border bg-bg-card p-5 shadow-[0_1px_3px_rgba(0,0,0,.3)]">
-          <h3 className="mb-4 text-sm font-semibold text-text-secondary">
+        <div className="rounded-xl bg-bg-card p-6">
+          <h3 className="mb-4 text-sm font-medium text-text-muted">
             Tokens by Model
           </h3>
           <div className="relative h-[220px] w-full">
@@ -323,9 +396,9 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Sessions */}
-      <div className="mb-6 overflow-hidden rounded-lg border border-border bg-bg-card shadow-[0_1px_3px_rgba(0,0,0,.3)]">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h3 className="text-sm font-semibold text-text-secondary">
+      <div className="mb-8 overflow-hidden rounded-xl bg-bg-card">
+        <div className="flex items-center justify-between px-6 py-5">
+          <h3 className="text-sm font-medium text-text-muted">
             Recent Sessions
           </h3>
         </div>
@@ -335,7 +408,7 @@ export default function Dashboard() {
               {["Project", "Session", "Message", "Date"].map((h) => (
                 <th
                   key={h}
-                  className="border-b border-border bg-bg-secondary px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-text-muted"
+                  className="border-b border-border px-6 py-2.5 text-left text-xs font-medium text-text-muted"
                 >
                   {h}
                 </th>
@@ -352,23 +425,23 @@ export default function Dashboard() {
                   key={`${s.sessionId}-${i}`}
                   className="border-b border-border last:border-b-0 hover:bg-bg-tertiary"
                 >
-                  <td className="px-5 py-3 text-sm text-text-secondary">
+                  <td className="px-6 py-3 text-sm text-text-secondary">
                     <span
-                      className="inline-block max-w-[200px] truncate rounded-xl bg-bg-tertiary px-2 py-0.5 text-xs text-text-secondary"
+                      className="inline-block max-w-[200px] truncate rounded-md bg-bg-tertiary px-2 py-0.5 text-xs text-text-secondary"
                       title={s.project}
                     >
                       {pName}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-sm">
+                  <td className="px-6 py-3 text-sm">
                     <Link to={`/session/${s.sessionId}`} className="text-accent">
                       {s.sessionId?.slice(0, 8)}...
                     </Link>
                   </td>
-                  <td className="px-5 py-3 text-sm text-text-secondary">
+                  <td className="px-6 py-3 text-sm text-text-secondary">
                     {(s.display || "").slice(0, 60)}
                   </td>
-                  <td className="px-5 py-3 text-sm text-text-secondary">
+                  <td className="px-6 py-3 text-sm text-text-secondary">
                     {fmtDateTime(s.timestamp)}
                   </td>
                 </tr>

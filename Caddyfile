@@ -1,0 +1,3 @@
+dashboard.example.com {
+	reverse_proxy dashboard:8420
+}
