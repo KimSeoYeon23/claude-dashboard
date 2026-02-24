@@ -36,14 +36,15 @@ TEMPLATES: dict[str, dict] = {
 def get_notifications(username: str, limit: int = 50) -> list[dict]:
     """유저의 알림 이력 조회"""
     with get_conn() as conn:
-        rows = conn.execute(
+        conn.execute(
             """SELECT type, subject, message, session_id, emailed, created_at
                FROM notifications
-               WHERE username = ?
+               WHERE username = %s
                ORDER BY created_at DESC
-               LIMIT ?""",
+               LIMIT %s""",
             (username, limit),
-        ).fetchall()
+        )
+        rows = conn.fetchall()
     return [dict(row) for row in rows]
 
 
@@ -80,7 +81,7 @@ def notify_user(username: str, ntype: str, context: dict):
     with get_conn() as conn:
         conn.execute(
             """INSERT INTO notifications (username, type, subject, message, session_id, emailed)
-               VALUES (?, ?, ?, ?, ?, ?)""",
+               VALUES (%s, %s, %s, %s, %s, %s)""",
             (username, ntype, subject, context.get("message", ""),
              context.get("sessionId"), int(emailed)),
         )

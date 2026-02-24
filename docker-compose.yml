@@ -1,4 +1,16 @@
 services:
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=claude_dashboard
+      - MYSQL_USER=dashboard
+      - MYSQL_PASSWORD=dashboard
+    volumes:
+      - mysql-data:/var/lib/mysql
+
   dashboard:
     build: .
     ports:
@@ -12,5 +24,15 @@ services:
       - SMTP_USER=dashboard@example.com
       - SMTP_PASS=your-password
       - SMTP_FROM=dashboard@example.com
+      - GOOGLE_CLIENT_ID=538199897856-jehdkvjm0cl5lujsthdbqn99nbg1pm00.apps.googleusercontent.com
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=dashboard
+      - MYSQL_PASSWORD=dashboard
+      - MYSQL_DATABASE=claude_dashboard
+    depends_on:
+      - mysql
+
 volumes:
   dashboard-data:
+  mysql-data:

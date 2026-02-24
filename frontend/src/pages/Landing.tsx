@@ -49,7 +49,7 @@ export default function Landing() {
         </p>
         <div className="flex gap-3">
           <Link
-            to="/setup"
+            to="/login"
             className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             시작하기
@@ -86,7 +86,7 @@ export default function Landing() {
         <h2 className="text-center text-xl font-bold text-text-primary">How it works</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            { step: "1", title: "등록", desc: "Setup 페이지에서 유저명을 입력하고 토큰을 발급받습니다.", bg: "bg-accent" },
+            { step: "1", title: "로그인", desc: "Google 계정으로 간편하게 로그인합니다.", bg: "bg-accent" },
             { step: "2", title: "Hook 설정", desc: "발급받은 설정을 ~/.claude/settings.json에 붙여넣기합니다.", bg: "bg-purple" },
             { step: "3", title: "자동 동기화", desc: "Claude Code 세션이 끝날 때마다 데이터가 자동으로 동기화됩니다.", bg: "bg-green" },
           ].map((s) => (
@@ -110,10 +110,10 @@ export default function Landing() {
           설정은 1분이면 충분합니다.
         </p>
         <Link
-          to="/setup"
+          to="/login"
           className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
         >
-          Setup Guide
+          시작하기
         </Link>
       </section>
     </div>

@@ -17,7 +17,7 @@ export default function Nav() {
         <NavLink to="/" className="flex items-center gap-2 text-sm font-semibold text-text-primary hover:no-underline">
           <span className="text-accent">&gt;_</span> Claude Code Dashboard
         </NavLink>
-        {token && (
+        {token ? (
           <>
             <div className="flex gap-1">
               <NavLink to="/dashboard" className={linkClass}>
@@ -47,6 +47,12 @@ export default function Nav() {
               </button>
             </div>
           </>
+        ) : (
+          <div className="ml-auto">
+            <NavLink to="/login" className={linkClass}>
+              로그인
+            </NavLink>
+          </div>
         )}
       </div>
     </nav>

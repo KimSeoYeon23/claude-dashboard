@@ -1,53 +1,72 @@
-import sqlite3
+import logging
+import time
 from contextlib import contextmanager
-from pathlib import Path
 
-from .config import DATA_DIR
+import pymysql
+from pymysql.cursors import DictCursor
 
-DB_PATH = (DATA_DIR / "dashboard.db") if DATA_DIR else Path(__file__).parent.parent / "dashboard.db"
+from .config import MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE
+
+logger = logging.getLogger(__name__)
 
 
-def init_db():
-    """테이블 생성 (없으면)"""
-    with get_conn() as conn:
-        conn.executescript("""
-            CREATE TABLE IF NOT EXISTS users (
-                id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                username  TEXT UNIQUE NOT NULL,
-                token     TEXT UNIQUE NOT NULL,
-                email     TEXT DEFAULT '',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS notifications (
-                id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                username   TEXT NOT NULL,
-                type       TEXT NOT NULL,
-                subject    TEXT NOT NULL,
-                message    TEXT DEFAULT '',
-                session_id TEXT,
-                emailed    INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_notifications_username
-                ON notifications(username);
-            CREATE INDEX IF NOT EXISTS idx_notifications_created
-                ON notifications(created_at DESC);
-        """)
+def init_db(max_retries: int = 30, delay: float = 2.0):
+    """테이블 생성 (MySQL 컨테이너 기동 대기 포함)"""
+    for attempt in range(1, max_retries + 1):
+        try:
+            with get_conn() as cursor:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id         INT AUTO_INCREMENT PRIMARY KEY,
+                        username   VARCHAR(255) UNIQUE NOT NULL,
+                        token      VARCHAR(255) UNIQUE NOT NULL,
+                        email      VARCHAR(255) DEFAULT '',
+                        google_id  VARCHAR(255) DEFAULT '',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS notifications (
+                        id         INT AUTO_INCREMENT PRIMARY KEY,
+                        username   VARCHAR(255) NOT NULL,
+                        type       VARCHAR(100) NOT NULL,
+                        subject    VARCHAR(500) NOT NULL,
+                        message    TEXT,
+                        session_id VARCHAR(255),
+                        emailed    TINYINT DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        INDEX idx_notifications_username (username),
+                        INDEX idx_notifications_created (created_at)
+                    )
+                """)
+            logger.info("MySQL 테이블 초기화 완료")
+            return
+        except pymysql.err.OperationalError as e:
+            logger.warning(f"MySQL 연결 대기 중... ({attempt}/{max_retries}): {e}")
+            if attempt == max_retries:
+                raise
+            time.sleep(delay)
 
 
 @contextmanager
 def get_conn():
-    """SQLite 커넥션 컨텍스트 매니저"""
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
+    """MySQL DictCursor 컨텍스트 매니저"""
+    conn = pymysql.connect(
+        host=MYSQL_HOST,
+        port=MYSQL_PORT,
+        user=MYSQL_USER,
+        password=MYSQL_PASSWORD,
+        database=MYSQL_DATABASE,
+        charset="utf8mb4",
+        cursorclass=DictCursor,
+    )
+    cursor = conn.cursor()
     try:
-        yield conn
+        yield cursor
         conn.commit()
     except Exception:
         conn.rollback()
         raise
     finally:
+        cursor.close()
         conn.close()

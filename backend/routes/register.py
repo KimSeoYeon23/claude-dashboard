@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
-from ..services.auth import register_user, get_user_info
+from ..config import GOOGLE_CLIENT_ID
+from ..services.auth import register_user, get_user_info, google_login
 
 router = APIRouter()
 
@@ -32,3 +33,20 @@ def api_me(authorization: str = Header(...)):
     if not info:
         raise HTTPException(status_code=401, detail="Invalid token")
     return info
+
+
+class GoogleLoginRequest(BaseModel):
+    id_token: str
+
+
+@router.post("/api/auth/google")
+def api_google_login(body: GoogleLoginRequest):
+    result = google_login(body.id_token)
+    if "error" in result:
+        raise HTTPException(status_code=401, detail=result["error"])
+    return result
+
+
+@router.get("/api/auth/google/client-id")
+def api_google_client_id():
+    return {"client_id": GOOGLE_CLIENT_ID}
