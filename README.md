@@ -7,7 +7,7 @@ Claude Code를 쓰다 보면 세션이 쌓이는데, 어떤 에이전트가 돌�
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?logo=tailwindcss&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL_8-4479A1?logo=mysql&logoColor=white)
 
 ## 뭘 볼 수 있나
 
@@ -27,8 +27,8 @@ Claude Code를 쓰다 보면 세션이 쌓이는데, 어떤 에이전트가 돌�
 | 차트 | Chart.js + react-chartjs-2 |
 | 라우팅 | React Router v7 (HashRouter) |
 | Backend | Python FastAPI + uvicorn |
-| DB | SQLite |
-| 인증 | Bearer 토큰 (셀프 등록 or 환경변수) |
+| DB | MySQL 8.0 |
+| 인증 | Google OAuth + Bearer 토큰 |
 | 배포 | Docker + Caddy (HTTPS 자동) |
 
 ## 시작하기
@@ -51,7 +51,7 @@ docker compose up -d
 git clone https://github.com/KimSeoYeon23/claude-dashboard.git
 cd claude-dashboard
 
-pip install fastapi uvicorn python-multipart
+pip install fastapi uvicorn python-multipart google-auth requests pymysql
 cd frontend && pnpm install
 ```
 
@@ -86,9 +86,9 @@ Caddy가 Let's Encrypt 인증서를 자동 발급합니다.
 
 ## 유저 설정
 
-### 등록
+### 로그인
 
-사이트에 접속해서 Setup 페이지에서 유저명을 입력하면 토큰이 발급됩니다.
+사이트에 접속해서 Google 계정으로 로그인하면 토큰이 자동 발급됩니다.
 
 ### Hook 설정
 
@@ -111,7 +111,8 @@ Caddy가 Let's Encrypt 인증서를 자동 발급합니다.
 | 경로 | 설명 | 인증 |
 |------|------|------|
 | `/` | 프로젝트 소개, 시작하기 안내 | X |
-| `/setup` | 등록/로그인 + Hook 가이드 | X |
+| `/login` | Google OAuth 로그인 | X |
+| `/setup` | Hook 가이드 | O |
 | `/dashboard` | 통계, 차트, 최근 세션 | 비로그인 시 데모 데이터 |
 | `/sessions` | 세션 목록 (필터, 검색) | O |
 | `/session/:id` | 세션 상세 (타임라인, 도구, 파일) | O |
@@ -129,6 +130,8 @@ Caddy가 Let's Encrypt 인증서를 자동 발급합니다.
 | GET | `/api/agents` | 활성 에이전트 |
 | GET | `/api/agent/:pid` | 에이전트 상세 + 도구 통계 |
 | POST | `/api/sync` | 데이터 동기화 (Bearer, multipart) |
+| POST | `/api/auth/google` | Google OAuth 로그인 |
+| GET | `/api/auth/google/client-id` | Google Client ID 조회 |
 | POST | `/api/register` | 유저 등록 |
 | GET | `/api/me` | 내 정보 (Bearer) |
 | GET | `/api/notifications?user=` | 알림 이력 |
@@ -145,6 +148,12 @@ Caddy가 Let's Encrypt 인증서를 자동 발급합니다.
 | `SMTP_USER` | SMTP 유저 | - |
 | `SMTP_PASS` | SMTP 비밀번호 | - |
 | `SMTP_FROM` | 발신자 주소 | `SMTP_USER` |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | - |
+| `MYSQL_HOST` | MySQL 호스트 | `127.0.0.1` |
+| `MYSQL_PORT` | MySQL 포트 | `3306` |
+| `MYSQL_USER` | MySQL 유저 | `dashboard` |
+| `MYSQL_PASSWORD` | MySQL 비밀번호 | `dashboard` |
+| `MYSQL_DATABASE` | MySQL 데이터베이스 | `claude_dashboard` |
 
 ## 라이선스
 
