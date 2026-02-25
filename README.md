@@ -164,9 +164,9 @@ Caddy가 Let's Encrypt 인증서를 자동 발급합니다.
 | `ANTHROPIC_API_KEY` | AI 요약용 Anthropic API 키 | - |
 | `MYSQL_HOST` | MySQL 호스트 | `127.0.0.1` |
 | `MYSQL_PORT` | MySQL 포트 | `3306` |
-| `MYSQL_USER` | MySQL 유저 | `dashboard` |
-| `MYSQL_PASSWORD` | MySQL 비밀번호 | `dashboard` |
-| `MYSQL_DATABASE` | MySQL 데이터베이스 | `claude_dashboard` |
+| `MYSQL_USER` | MySQL 유저 | - |
+| `MYSQL_PASSWORD` | MySQL 비밀번호 | - |
+| `MYSQL_DATABASE` | MySQL 데이터베이스 | - |
 
 ## 라이선스
 
