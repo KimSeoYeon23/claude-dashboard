@@ -95,6 +95,35 @@ export interface SessionDetail {
   subagentIds: string[];
 }
 
+// ── Error reporting ──
+
+export async function reportError(
+  type: string,
+  message: string,
+  extra?: { stack?: string; url?: string; componentStack?: string },
+) {
+  try {
+    const match = document.cookie.match(/(?:^|; )username=([^;]*)/);
+    const username = match ? decodeURIComponent(match[1]) : null;
+    let path = "/api/report-error";
+    if (username) path += `?user=${encodeURIComponent(username)}`;
+
+    const stack = [extra?.stack, extra?.componentStack].filter(Boolean).join("\n\n");
+    await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type,
+        message,
+        url: extra?.url ?? window.location.href,
+        stack: stack || undefined,
+      }),
+    });
+  } catch {
+    // 에러 리포팅 실패는 무시
+  }
+}
+
 // ── Fetch wrapper ──
 
 export async function fetchApi<T>(path: string): Promise<T> {
@@ -105,6 +134,10 @@ export async function fetchApi<T>(path: string): Promise<T> {
     path = `${path}${sep}user=${encodeURIComponent(username)}`;
   }
   const res = await fetch(path);
-  if (!res.ok) throw new Error(`API ${res.status}`);
+  if (!res.ok) {
+    const errMsg = `API ${res.status}: ${path}`;
+    reportError("api_error", errMsg);
+    throw new Error(`API ${res.status}`);
+  }
   return res.json() as Promise<T>;
 }

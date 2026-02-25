@@ -1,20 +1,18 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
+import { useToast } from "../components/Toast";
 
 export default function Setup() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [tokenVisible, setTokenVisible] = useState(false);
-  const [toast, setToast] = useState(false);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text);
-    clearTimeout(toastTimer.current);
-    setToast(true);
-    toastTimer.current = setTimeout(() => setToast(false), 2000);
-  }, []);
+    toast.success("클립보드에 복사되었습니다");
+  }, [toast]);
 
   // 비로그인 상태면 /login으로 redirect
   if (!auth.token) {
@@ -37,12 +35,6 @@ export default function Setup() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Toast */}
-      <div
-        className={`fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-text-primary px-4 py-2 text-sm text-bg-primary shadow-lg transition-all duration-300 ${toast ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"}`}
-      >
-        클립보드에 복사되었습니다
-      </div>
       <div>
         <h1 className="font-mono text-2xl font-bold text-text-primary">Setup Guide</h1>
         <p className="mt-1 text-text-secondary">

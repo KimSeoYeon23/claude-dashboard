@@ -1,10 +1,9 @@
 import logging
-import smtplib
-from email.mime.text import MIMEText
 
-from ..config import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+import requests
+
+from ..config import SLACK_WEBHOOK_URL
 from ..db import get_conn
-from .auth import resolve_email
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +29,10 @@ TEMPLATES: dict[str, dict] = {
         "subject": "동기화 중단 감지",
         "body": "데이터 동기화가 오랫동안 이루어지지 않았습니다.\n\n{message}",
     },
+    "frontend_error": {
+        "subject": "프론트엔드 에러",
+        "body": "프론트엔드에서 에러가 발생했습니다.\n\n{message}",
+    },
 }
 
 
@@ -48,6 +51,17 @@ def get_notifications(username: str, limit: int = 50) -> list[dict]:
     return [dict(row) for row in rows]
 
 
+def _send_slack(subject: str, body: str) -> bool:
+    """Slack Webhook으로 알림 발송"""
+    if not SLACK_WEBHOOK_URL:
+        return False
+
+    text = f"*[Claude Dashboard] {subject}*\n{body}"
+    res = requests.post(SLACK_WEBHOOK_URL, json={"text": text})
+    res.raise_for_status()
+    return True
+
+
 def notify_user(username: str, ntype: str, context: dict):
     """유저에게 알림 발송 + DB 저장"""
     template = TEMPLATES.get(ntype)
@@ -59,23 +73,10 @@ def notify_user(username: str, ntype: str, context: dict):
     body = template["body"].format(**context)
     emailed = False
 
-    # 이메일 발송 시도
-    email = resolve_email(username)
-    if email and SMTP_HOST:
-        try:
-            msg = MIMEText(body, "plain", "utf-8")
-            msg["Subject"] = f"[Claude Dashboard] {subject}"
-            msg["From"] = SMTP_FROM
-            msg["To"] = email
-
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-                server.starttls()
-                if SMTP_USER:
-                    server.login(SMTP_USER, SMTP_PASS)
-                server.send_message(msg)
-            emailed = True
-        except Exception as e:
-            logger.error(f"Failed to send email to {username} ({email}): {e}")
+    try:
+        emailed = _send_slack(subject, body)
+    except Exception as e:
+        logger.error(f"Failed to send Slack notification for {username}: {e}")
 
     # DB 저장
     with get_conn() as conn:

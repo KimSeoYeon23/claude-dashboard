@@ -27,12 +27,8 @@ for pair in _raw.split(","):
 # Google OAuth
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 
-# SMTP 설정
-SMTP_HOST = os.environ.get("SMTP_HOST", "")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER = os.environ.get("SMTP_USER", "")
-SMTP_PASS = os.environ.get("SMTP_PASS", "")
-SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER)
+# Slack Webhook (에러/장애 알림)
+SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
 
 # MySQL 설정
 MYSQL_HOST = os.environ.get("MYSQL_HOST", "127.0.0.1")

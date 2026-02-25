@@ -90,6 +90,17 @@ body {
   text-shadow: 0 0 16px rgba(192, 132, 252, 0.5);
 }
 
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }

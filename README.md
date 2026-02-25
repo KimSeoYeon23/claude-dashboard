@@ -18,7 +18,10 @@ Claude Code를 쓰다 보면 세션이 쌓이는데, 어떤 에이전트가 돌�
 - 세션 AI 요약 — Anthropic API로 자동 생성, DB에 캐싱
 - 메시지별 한줄 요약 + 펼치기/접기
 - 프로젝트 필터, 검색, 페이지네이션 (세션 중복 자동 제거)
-- Claude 에러/무응답/장애 시 이메일 알림
+- Claude 에러/무응답/장애 시 Slack 알림
+- 프론트엔드 에러 자동 리포팅 (API 실패, 렌더링 크래시 → Slack 알림)
+- Toast 알림 시스템 (우상단, 자동 닫힘)
+- Error Boundary (렌더링 크래시 시 fallback UI + 자동 리포팅)
 
 ## 기술 스택
 
@@ -146,6 +149,7 @@ Caddy가 Let's Encrypt 인증서를 자동 발급합니다.
 | GET | `/api/me` | 내 정보 (Bearer) |
 | GET | `/api/session/:id/summary` | 세션 AI 요약 (캐시) |
 | GET | `/api/session/:id/summary/stream` | 세션 AI 요약 (SSE 스트리밍 생성) |
+| POST | `/api/report-error?user=` | 프론트엔드 에러 리포팅 |
 | GET | `/api/notifications?user=` | 알림 이력 |
 
 ## 환경변수
@@ -155,11 +159,7 @@ Caddy가 Let's Encrypt 인증서를 자동 발급합니다.
 | `DATA_DIR` | 동기화 데이터 경로 | 미설정 시 로컬 모드 |
 | `HOST` | 바인딩 주소 | `127.0.0.1` |
 | `SYNC_TOKENS` | 유저 등록 (`user:token:email,...`) | - |
-| `SMTP_HOST` | 알림용 SMTP 서버 | - |
-| `SMTP_PORT` | SMTP 포트 | `587` |
-| `SMTP_USER` | SMTP 유저 | - |
-| `SMTP_PASS` | SMTP 비밀번호 | - |
-| `SMTP_FROM` | 발신자 주소 | `SMTP_USER` |
+| `SLACK_WEBHOOK_URL` | Slack Incoming Webhook URL | - |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID | - |
 | `ANTHROPIC_API_KEY` | AI 요약용 Anthropic API 키 | - |
 | `MYSQL_HOST` | MySQL 호스트 | `127.0.0.1` |
