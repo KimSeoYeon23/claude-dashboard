@@ -15,7 +15,9 @@ Claude Code를 쓰다 보면 세션이 쌓이는데, 어떤 에이전트가 돌�
 - 돌고 있는 에이전트 목록 (CPU/MEM, 사용 중인 도구)
 - 에이전트 Live Activity 타임라인 — 5초마다 갱신, 새로고침해도 유지
 - 세션별 메시지 타임라인, 도구 호출 횟수, 수정한 파일
-- 프로젝트 필터, 검색, 페이지네이션
+- 세션 AI 요약 — Anthropic API로 자동 생성, DB에 캐싱
+- 메시지별 한줄 요약 + 펼치기/접기
+- 프로젝트 필터, 검색, 페이지네이션 (세션 중복 자동 제거)
 - Claude 에러/무응답/장애 시 이메일 알림
 
 ## 기술 스택
@@ -23,7 +25,7 @@ Claude Code를 쓰다 보면 세션이 쌓이는데, 어떤 에이전트가 돌�
 | 구분 | 기술 |
 |------|------|
 | Frontend | Vite 6 + React 19 + TypeScript |
-| 스타일링 | Tailwind CSS v4 |
+| 스타일링 | Tailwind CSS v4 (OLED + Glassmorphism) |
 | 차트 | Chart.js + react-chartjs-2 |
 | 라우팅 | React Router v7 (HashRouter) |
 | Backend | Python FastAPI + uvicorn |
@@ -39,19 +41,27 @@ Claude Code를 쓰다 보면 세션이 쌓이는데, 어떤 에이전트가 돌�
 git clone https://github.com/KimSeoYeon23/claude-dashboard.git
 cd claude-dashboard
 
-# docker-compose.yml에서 SYNC_TOKENS 수정 후
+# .env 파일에 시크릿 설정 후
+cp .env.example .env
+vi .env
+
 docker compose up -d
 ```
 
 `http://localhost:8420`으로 접속합니다.
 
-### 로컬 개발
+### 로컬 개발 (Docker Compose)
 
 ```bash
-git clone https://github.com/KimSeoYeon23/claude-dashboard.git
-cd claude-dashboard
+docker compose -f docker-compose.dev.yml up -d
+```
 
-pip install fastapi uvicorn python-multipart google-auth requests pymysql
+`http://localhost:5173`으로 접속합니다. 코드 변경 시 HMR로 자동 반영됩니다.
+
+### 로컬 개발 (직접 실행)
+
+```bash
+pip install -r requirements.txt
 cd frontend && pnpm install
 ```
 
@@ -134,6 +144,8 @@ Caddy가 Let's Encrypt 인증서를 자동 발급합니다.
 | GET | `/api/auth/google/client-id` | Google Client ID 조회 |
 | POST | `/api/register` | 유저 등록 |
 | GET | `/api/me` | 내 정보 (Bearer) |
+| GET | `/api/session/:id/summary` | 세션 AI 요약 (캐시) |
+| GET | `/api/session/:id/summary/stream` | 세션 AI 요약 (SSE 스트리밍 생성) |
 | GET | `/api/notifications?user=` | 알림 이력 |
 
 ## 환경변수
@@ -149,6 +161,7 @@ Caddy가 Let's Encrypt 인증서를 자동 발급합니다.
 | `SMTP_PASS` | SMTP 비밀번호 | - |
 | `SMTP_FROM` | 발신자 주소 | `SMTP_USER` |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID | - |
+| `ANTHROPIC_API_KEY` | AI 요약용 Anthropic API 키 | - |
 | `MYSQL_HOST` | MySQL 호스트 | `127.0.0.1` |
 | `MYSQL_PORT` | MySQL 포트 | `3306` |
 | `MYSQL_USER` | MySQL 유저 | `dashboard` |
