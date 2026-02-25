@@ -90,10 +90,10 @@ ChartJS.register(
   Legend,
 );
 
-ChartJS.defaults.color = "#8b949e";
-ChartJS.defaults.borderColor = "#27272a";
+ChartJS.defaults.color = "#A1A1AA";
+ChartJS.defaults.borderColor = "rgba(255, 255, 255, 0.06)";
 ChartJS.defaults.font.family =
-  "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
+  "'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
 export default function Dashboard() {
   const { token } = useAuth();
@@ -149,12 +149,12 @@ export default function Dashboard() {
   const modelUsage = stats.modelUsage || {};
   const modelNames = Object.keys(modelUsage);
   const modelColors = [
-    "#3b82f6",
-    "#3fb950",
-    "#d29922",
-    "#f85149",
-    "#bc8cff",
-    "#f778ba",
+    "#818CF8",
+    "#34D399",
+    "#FBBF24",
+    "#F87171",
+    "#C084FC",
+    "#F472B6",
   ];
 
   return (
@@ -188,10 +188,10 @@ export default function Dashboard() {
                 <Link
                   to={`/agent/${a.pid}`}
                   key={a.pid}
-                  className="block rounded-xl bg-bg-card p-4 transition-colors hover:bg-bg-tertiary hover:no-underline"
+                  className="block glass-card p-4 transition-colors hover:bg-bg-tertiary/40 hover:no-underline"
                 >
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="rounded bg-green/10 px-2 py-0.5 font-mono text-xs font-bold text-green">
+                    <span className="rounded bg-green/10 px-2 py-0.5 font-mono text-xs font-bold text-green glow-green">
                       PID {a.pid}
                     </span>
                     <span className="font-mono text-[11px] text-text-muted">
@@ -211,7 +211,7 @@ export default function Dashboard() {
                     </div>
                   )}
                   <div className="mb-1 flex flex-wrap items-center gap-2.5">
-                    <span className="font-mono text-xs text-accent">
+                    <span className="font-mono text-xs text-accent glow-accent">
                       {a.sessionId ? `${a.sessionId.slice(0, 8)}...` : "-"}
                     </span>
                     {a.model && (
@@ -230,7 +230,7 @@ export default function Dashboard() {
                   )}
                   {/* 최근 활동 */}
                   {(a.recentActivity || []).length > 0 && (
-                    <div className="mt-2 border-t border-border pt-2">
+                    <div className="mt-2 border-t border-border/50 pt-2">
                       <div className="mb-1 text-[10px] text-text-muted">
                         Recent Activity
                       </div>
@@ -279,7 +279,7 @@ export default function Dashboard() {
       {/* Charts */}
       <div className="mb-8 grid grid-cols-2 gap-4 max-md:grid-cols-1">
         {/* Daily Activity */}
-        <div className="col-span-full rounded-xl bg-bg-card p-6">
+        <div className="col-span-full glass-card p-6">
           <h3 className="mb-4 text-sm font-medium text-text-muted">
             Daily Activity
           </h3>
@@ -291,8 +291,8 @@ export default function Dashboard() {
                   {
                     label: "Messages",
                     data: daily.map((d) => d.messageCount),
-                    borderColor: "#3b82f6",
-                    backgroundColor: "rgba(59,130,246,.1)",
+                    borderColor: "#818CF8",
+                    backgroundColor: "rgba(129,140,248,.1)",
                     fill: true,
                     tension: 0.3,
                     pointRadius: 1,
@@ -300,8 +300,8 @@ export default function Dashboard() {
                   {
                     label: "Tool Calls",
                     data: daily.map((d) => d.toolCallCount),
-                    borderColor: "#3fb950",
-                    backgroundColor: "rgba(63,185,80,.1)",
+                    borderColor: "#34D399",
+                    backgroundColor: "rgba(52,211,153,.08)",
                     fill: true,
                     tension: 0.3,
                     pointRadius: 1,
@@ -326,7 +326,7 @@ export default function Dashboard() {
         </div>
 
         {/* Hourly Activity */}
-        <div className="rounded-xl bg-bg-card p-6">
+        <div className="glass-card p-6">
           <h3 className="mb-4 text-sm font-medium text-text-muted">
             Activity by Hour
           </h3>
@@ -338,7 +338,7 @@ export default function Dashboard() {
                   {
                     label: "Sessions",
                     data: hours.map((h) => hourCounts[h] || 0),
-                    backgroundColor: "rgba(188,140,255,.6)",
+                    backgroundColor: "rgba(129,140,248,.5)",
                     borderRadius: 4,
                   },
                 ],
@@ -360,7 +360,7 @@ export default function Dashboard() {
         </div>
 
         {/* Model Tokens */}
-        <div className="rounded-xl bg-bg-card p-6">
+        <div className="glass-card p-6">
           <h3 className="mb-4 text-sm font-medium text-text-muted">
             Tokens by Model
           </h3>
@@ -396,7 +396,7 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Sessions */}
-      <div className="mb-8 overflow-hidden rounded-xl bg-bg-card">
+      <div className="mb-8 overflow-hidden glass-card">
         <div className="flex items-center justify-between px-6 py-5">
           <h3 className="text-sm font-medium text-text-muted">
             Recent Sessions
@@ -408,7 +408,7 @@ export default function Dashboard() {
               {["Project", "Session", "Message", "Date"].map((h) => (
                 <th
                   key={h}
-                  className="border-b border-border px-6 py-2.5 text-left text-xs font-medium text-text-muted"
+                  className="border-b border-border/50 px-6 py-2.5 text-left text-xs font-medium text-text-muted"
                 >
                   {h}
                 </th>
@@ -423,7 +423,7 @@ export default function Dashboard() {
               return (
                 <tr
                   key={`${s.sessionId}-${i}`}
-                  className="border-b border-border last:border-b-0 hover:bg-bg-tertiary"
+                  className="border-b border-border/50 last:border-b-0 hover:bg-bg-tertiary/40"
                 >
                   <td className="px-6 py-3 text-sm text-text-secondary">
                     <span

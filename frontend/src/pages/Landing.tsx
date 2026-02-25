@@ -40,8 +40,8 @@ export default function Landing() {
     <div className="flex flex-col gap-16 py-8">
       {/* Hero */}
       <section className="flex flex-col items-center gap-6 text-center">
-        <div className="flex items-center gap-3 text-4xl font-bold text-text-primary">
-          <span className="text-accent">&gt;_</span> Claude Code Dashboard
+        <div className="flex items-center gap-3 text-4xl font-bold text-text-primary font-mono">
+          <span className="text-accent glow-accent">&gt;_</span> Claude Code Dashboard
         </div>
         <p className="max-w-xl text-lg text-text-secondary">
           Claude Code 사용 현황을 실시간으로 모니터링하고,
@@ -50,13 +50,13 @@ export default function Landing() {
         <div className="flex gap-3">
           <Link
             to="/login"
-            className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-[0_0_24px_rgba(129,140,248,0.35)]"
           >
             시작하기
           </Link>
           <Link
             to="/dashboard"
-            className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:bg-bg-tertiary"
+            className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-text-primary transition-all hover:bg-white/5"
           >
             예시 보기
           </Link>
@@ -68,7 +68,7 @@ export default function Landing() {
         {features.map((f) => (
           <div
             key={f.title}
-            className={`rounded-xl border border-border bg-bg-card p-6 transition-colors ${f.border}`}
+            className={`glass-card p-6 transition-colors ${f.border}`}
           >
             <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${f.bg}`}>
               <svg className={`h-5 w-5 ${f.color}`} viewBox="0 0 24 24" fill="currentColor">
@@ -90,7 +90,7 @@ export default function Landing() {
             { step: "2", title: "Hook 설정", desc: "발급받은 설정을 ~/.claude/settings.json에 붙여넣기합니다.", bg: "bg-purple" },
             { step: "3", title: "자동 동기화", desc: "Claude Code 세션이 끝날 때마다 데이터가 자동으로 동기화됩니다.", bg: "bg-green" },
           ].map((s) => (
-            <div key={s.step} className="flex flex-col items-center gap-3 rounded-xl border border-border bg-bg-card p-6 text-center">
+            <div key={s.step} className="flex flex-col items-center gap-3 glass-card p-6 text-center">
               <div className={`flex h-8 w-8 items-center justify-center rounded-full ${s.bg} text-sm font-bold text-white`}>
                 {s.step}
               </div>
@@ -102,7 +102,7 @@ export default function Landing() {
       </section>
 
       {/* CTA */}
-      <section className="flex flex-col items-center gap-4 rounded-xl border border-border bg-bg-card p-8 text-center">
+      <section className="flex flex-col items-center gap-4 glass-card p-8 text-center">
         <p className="text-lg font-semibold text-text-primary">
           지금 바로 시작하세요
         </p>
@@ -111,7 +111,7 @@ export default function Landing() {
         </p>
         <Link
           to="/login"
-          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-[0_0_24px_rgba(129,140,248,0.35)]"
         >
           시작하기
         </Link>

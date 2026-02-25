@@ -1,4 +1,6 @@
+import tarfile
 import traceback
+from io import BytesIO
 
 from fastapi import APIRouter, Form, Header, HTTPException, UploadFile, File
 
@@ -14,6 +16,7 @@ router = APIRouter()
 async def api_sync(
     stats: UploadFile = File(None),
     history: UploadFile = File(None),
+    projects: UploadFile = File(None),
     authorization: str = Header(...),
     status: str = Form(None),
     error_message: str = Form(None),
@@ -30,7 +33,7 @@ async def api_sync(
     if not username:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    if not stats and not history and not status:
+    if not stats and not history and not projects and not status:
         raise HTTPException(status_code=400, detail="No files provided")
 
     user_dir = DATA_DIR / username
@@ -45,6 +48,16 @@ async def api_sync(
         if history:
             content = await history.read()
             (user_dir / "history.jsonl").write_bytes(content)
+
+        if projects:
+            content = await projects.read()
+            buf = BytesIO(content)
+            with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+                # 안전 체크: 경로 탈출 방지
+                for member in tar.getmembers():
+                    if member.name.startswith("/") or ".." in member.name:
+                        raise HTTPException(status_code=400, detail="Invalid tar member path")
+                tar.extractall(path=str(user_dir / "projects"))
     except Exception as e:
         notify_user(username, "sync_error", {
             "message": f"파일 저장 실패\n\n{traceback.format_exc()}",

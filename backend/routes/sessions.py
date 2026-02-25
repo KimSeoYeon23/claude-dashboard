@@ -10,6 +10,24 @@ from ..services.parsers import parse_session_detail
 router = APIRouter()
 
 
+def _dedup_sessions(entries: list[dict]) -> list[dict]:
+    """sessionId 기준으로 중복 합치기: 첫 display + 최신 timestamp"""
+    seen: dict[str, dict] = {}
+    no_id = []
+    for e in entries:
+        sid = e.get("sessionId")
+        if not sid:
+            no_id.append(e)
+            continue
+        if sid in seen:
+            # 더 최신 timestamp면 업데이트
+            if e.get("timestamp", 0) > seen[sid].get("timestamp", 0):
+                seen[sid]["timestamp"] = e["timestamp"]
+        else:
+            seen[sid] = {**e}
+    return list(seen.values()) + no_id
+
+
 @router.get("/api/sessions")
 def api_sessions(
     user: Optional[str] = Query(None),
@@ -24,7 +42,8 @@ def api_sessions(
         raise HTTPException(status_code=404, detail="history.jsonl not found")
 
     limit = min(limit, 100)
-    filtered = list(reversed(history))
+    deduped = _dedup_sessions(history)
+    filtered = sorted(deduped, key=lambda e: e.get("timestamp", 0), reverse=True)
 
     if project:
         # project 디렉토리명(-로 구분)을 원래 경로(/로 구분)로 변환하여 매칭

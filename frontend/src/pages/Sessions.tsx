@@ -70,7 +70,7 @@ export default function Sessions() {
         <select
           value={project}
           onChange={(e) => handleProjectChange(e.target.value)}
-          className="rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
+          className="glass-input px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
         >
           <option value="">All Projects</option>
           {projects.map((p) => (
@@ -84,19 +84,19 @@ export default function Sessions() {
           placeholder="Search messages..."
           value={search}
           onChange={(e) => handleSearchInput(e.target.value)}
-          className="min-w-[240px] rounded-lg border border-border bg-bg-tertiary px-3 py-2 text-sm text-text-primary outline-none focus:border-accent max-md:min-w-[160px]"
+          className="min-w-[240px] glass-input px-3 py-2 text-sm text-text-primary outline-none focus:border-accent max-md:min-w-[160px]"
         />
       </div>
 
       {/* Table */}
-      <div className="mb-6 overflow-hidden rounded-xl bg-bg-card">
+      <div className="mb-6 overflow-hidden glass-card">
         <table className="w-full border-collapse">
           <thead>
             <tr>
               {["Project", "Session", "First Message", "Date"].map((h) => (
                 <th
                   key={h}
-                  className="border-b border-border px-6 py-2.5 text-left text-xs font-medium text-text-muted"
+                  className="border-b border-border/50 px-6 py-2.5 text-left text-xs font-medium text-text-muted"
                 >
                   {h}
                 </th>
@@ -110,8 +110,8 @@ export default function Sessions() {
               );
               return (
                 <tr
-                  key={`${s.sessionId}-${i}`}
-                  className="border-b border-border last:border-b-0 hover:bg-bg-tertiary"
+                  key={s.sessionId || `no-id-${i}`}
+                  className="border-b border-border/50 last:border-b-0 hover:bg-bg-tertiary/40"
                 >
                   <td className="px-6 py-3 text-sm text-text-secondary">
                     <span

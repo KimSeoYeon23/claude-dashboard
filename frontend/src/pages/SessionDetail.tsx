@@ -1,6 +1,145 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { fetchApi, type SessionDetail as SessionDetailType } from "../api";
+
+function buildApiPath(path: string) {
+  const match = document.cookie.match(/(?:^|; )username=([^;]*)/);
+  const username = match ? decodeURIComponent(match[1]) : null;
+  if (username) {
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}user=${encodeURIComponent(username)}`;
+  }
+  return path;
+}
+
+function AISummary({ sessionId }: { sessionId: string }) {
+  const [summary, setSummary] = useState<string | null>(null);
+  const [displayText, setDisplayText] = useState("");
+  const [phase, setPhase] = useState<"checking" | "streaming" | "done" | "error">("checking");
+  const textRef = useRef("");
+  const rafRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const startStream = useCallback(async (signal: AbortSignal, regen = false) => {
+    setPhase("streaming");
+    setSummary(null);
+    textRef.current = "";
+    setDisplayText("");
+
+    let running = true;
+    const tick = () => {
+      if (signal.aborted) { running = false; return; }
+      setDisplayText(textRef.current);
+      if (running) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+
+    try {
+      const url = `/api/session/${sessionId}/summary/stream${regen ? "?regenerate=true" : ""}`;
+      const res = await fetch(buildApiPath(url), { signal });
+      if (!res.ok) throw new Error("stream failed");
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("no reader");
+      const decoder = new TextDecoder();
+      let buf = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (signal.aborted) break;
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.text) textRef.current += data.text;
+            if (data.done) {
+              running = false;
+              cancelAnimationFrame(rafRef.current);
+              const final = textRef.current.trim();
+              setSummary(final);
+              setDisplayText(final);
+              setPhase("done");
+            }
+          } catch { /* skip bad JSON */ }
+        }
+      }
+    } catch (e) {
+      if (signal.aborted) return;
+      running = false;
+      cancelAnimationFrame(rafRef.current);
+      setPhase("error");
+    }
+  }, [sessionId]);
+
+  const retryStream = useCallback((regen = false) => {
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    startStream(ac.signal, regen);
+  }, [startStream]);
+
+  useEffect(() => {
+    const ac = new AbortController();
+    abortRef.current = ac;
+
+    fetchApi<{ summary: string }>(`/api/session/${sessionId}/summary`)
+      .then((res) => {
+        if (ac.signal.aborted) return;
+        setSummary(res.summary);
+        setPhase("done");
+      })
+      .catch(() => {
+        if (ac.signal.aborted) return;
+        startStream(ac.signal);
+      });
+
+    return () => {
+      ac.abort();
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [sessionId, startStream]);
+
+  if (phase === "checking") return null;
+
+  if (phase === "error") {
+    return (
+      <div className="mb-6">
+        <span className="text-[13px] text-red">요약 생성 실패</span>
+        <button
+          onClick={retryStream}
+          className="ml-3 text-[13px] text-accent hover:text-accent-hover"
+        >
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6 glass-card px-5 py-4 flex items-start gap-3">
+      <span className="shrink-0 rounded-md bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-accent">
+        AI 요약
+      </span>
+      <p className={`flex-1 text-sm leading-relaxed ${phase === "done" ? "text-text-primary" : "text-text-secondary"}`}>
+        {summary || displayText || "요약 생성 중..."}
+        {phase === "streaming" && (
+          <span className="ml-0.5 inline-block h-3.5 w-[2px] translate-y-[1px] animate-[blink_0.8s_steps(2)_infinite] bg-accent" />
+        )}
+      </p>
+      {phase === "done" && (
+        <button
+          onClick={() => retryStream(true)}
+          className="shrink-0 rounded-md border border-border/50 px-2.5 py-1 text-[11px] text-text-secondary hover:border-accent/50 hover:text-accent transition-colors"
+        >
+          ↻ 재생성
+        </button>
+      )}
+    </div>
+  );
+}
 import StatCard from "../components/StatCard";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
@@ -49,7 +188,7 @@ export default function SessionDetail() {
 
       {/* Header */}
       <div className="mb-6">
-        <h2 className="mb-1 break-all text-xl font-bold text-text-primary">
+        <h2 className="mb-1 break-all font-mono text-xl font-bold text-text-primary">
           Session: {id}
         </h2>
         <div className="text-[13px] text-text-muted">
@@ -77,7 +216,7 @@ export default function SessionDetail() {
           {toolEntries.map(([name, count]) => (
             <span
               key={name}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-bg-tertiary px-3 py-1 text-[13px] text-text-secondary"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border/50 glass-card px-3 py-1 text-[13px] text-text-secondary"
             >
               {name}
               <span className="rounded-md bg-accent px-1.5 py-px text-[11px] font-bold text-white">
@@ -88,9 +227,12 @@ export default function SessionDetail() {
         </div>
       )}
 
+      {/* AI Summary */}
+      <AISummary sessionId={id!} />
+
       {/* Modified Files */}
       {(data.filesModified || []).length > 0 && (
-        <div className="mb-6 rounded-xl bg-bg-card px-5 py-4">
+        <div className="mb-6 glass-card px-5 py-4">
           <h3 className="mb-3 text-sm font-medium text-text-muted">
             Modified Files ({data.filesModified.length})
           </h3>
@@ -140,6 +282,159 @@ export default function SessionDetail() {
   );
 }
 
+const COLLAPSED_HEIGHT = 200;
+
+/** 메시지 블록들로부터 한 줄 요약 생성 */
+function getMessageSummary(content: SessionDetailType["messages"][number]["content"]): string {
+  if (!content || content.length === 0) return "(empty)";
+
+  const textParts: string[] = [];
+  const toolNames: string[] = [];
+
+  for (const block of content) {
+    if (block.type === "text" && block.text) {
+      if (textParts.length === 0) {
+        const firstLine = block.text.split("\n").find((l) => l.trim()) || "";
+        textParts.push(firstLine.trim().slice(0, 120));
+      }
+    } else if (block.type === "tool_use" && block.name) {
+      toolNames.push(block.name);
+    }
+  }
+
+  if (textParts.length > 0 && toolNames.length > 0) {
+    return `${textParts[0]}${textParts[0].length >= 120 ? "..." : ""} → ${toolNames.join(", ")}`;
+  }
+  if (toolNames.length > 0) {
+    return toolNames.join(" → ");
+  }
+  if (textParts.length > 0) {
+    return textParts[0] + (textParts[0].length >= 120 ? "..." : "");
+  }
+  return "(empty)";
+}
+
+function MessageCard({
+  msg,
+  index,
+}: {
+  msg: SessionDetailType["messages"][number];
+  index: number;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+
+  const checkOverflow = useCallback(() => {
+    const el = contentRef.current;
+    if (el) setOverflows(el.scrollHeight > COLLAPSED_HEIGHT);
+  }, []);
+
+  useEffect(() => {
+    checkOverflow();
+  }, [checkOverflow]);
+
+  const summary = getMessageSummary(msg.content);
+
+  const roleClass =
+    msg.role === "user"
+      ? "border-l-accent"
+      : msg.role === "assistant"
+        ? "border-l-green"
+        : "border-l-orange";
+  const tagClass =
+    msg.role === "user"
+      ? "bg-accent/15 text-accent"
+      : msg.role === "assistant"
+        ? "bg-green/15 text-green"
+        : "bg-orange/15 text-orange";
+
+  return (
+    <div
+      className={`rounded-xl border-l-[3px] ${roleClass} glass-card px-[18px] py-3.5`}
+    >
+      <div className="mb-1 flex items-center gap-2">
+        <span
+          className={`rounded px-2 py-0.5 text-[11px] font-bold ${tagClass}`}
+        >
+          {msg.role}
+        </span>
+        <span className="text-[11px] text-text-muted">
+          {fmtDateTime(msg.timestamp)}
+        </span>
+        <span className="text-[11px] text-text-muted">
+          #{index}
+        </span>
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="ml-auto text-[11px] text-text-muted transition-colors hover:text-text-secondary"
+        >
+          {expanded ? "접기 ▲" : "펼치기 ▼"}
+        </button>
+      </div>
+      {/* 한 줄 요약 */}
+      <div className="truncate text-[13px] text-text-secondary">
+        {summary}
+      </div>
+      {/* 전체 내용 */}
+      {expanded && (
+        <div
+          ref={contentRef}
+          className="mt-3 whitespace-pre-wrap break-words border-t border-border/50 pt-3 text-sm leading-relaxed text-text-secondary relative"
+        >
+          {msg.content.map((block, j) => {
+            if (block.type === "text" && block.text) {
+              return <div key={j}>{block.text}</div>;
+            }
+            if (block.type === "thinking") {
+              return (
+                <div
+                  key={j}
+                  className="text-[13px] italic text-text-muted"
+                >
+                  {block.text}
+                </div>
+              );
+            }
+            if (block.type === "tool_use") {
+              return (
+                <div
+                  key={j}
+                  className="my-1.5 rounded-md border border-border/50 bg-bg-tertiary/40 backdrop-blur-sm px-3 py-2 text-[13px]"
+                >
+                  <span className="font-semibold text-purple">
+                    {block.name}
+                  </span>
+                  {block.input_summary && (
+                    <div className="mt-1 truncate font-mono text-xs text-text-muted">
+                      {block.input_summary}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            if (block.type === "tool_result") {
+              return (
+                <div
+                  key={j}
+                  className={`my-1.5 max-h-[120px] overflow-hidden rounded-md border bg-bg-tertiary/40 backdrop-blur-sm px-3 py-2 font-mono text-xs ${
+                    block.is_error
+                      ? "border-red/30 text-red"
+                      : "border-border/50 text-text-muted"
+                  }`}
+                >
+                  {block.text || "(no output)"}
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const MessageTimeline = ({
   messages,
   page,
@@ -151,10 +446,11 @@ const MessageTimeline = ({
   onPageChange: (p: number) => void;
   ref: React.RefObject<HTMLDivElement | null>;
 }) => {
-  const total = messages.length;
+  const reversed = [...messages].reverse();
+  const total = reversed.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const start = (page - 1) * PAGE_SIZE;
-  const pageMessages = messages.slice(start, start + PAGE_SIZE);
+  const pageMessages = reversed.slice(start, start + PAGE_SIZE);
 
   return (
     <div ref={ref}>
@@ -176,91 +472,9 @@ const MessageTimeline = ({
           </div>
         ) : (
           pageMessages.map((msg, i) => {
-            const roleClass =
-              msg.role === "user"
-                ? "border-l-accent"
-                : msg.role === "assistant"
-                  ? "border-l-green"
-                  : "border-l-orange";
-            const tagClass =
-              msg.role === "user"
-                ? "bg-accent/15 text-accent"
-                : msg.role === "assistant"
-                  ? "bg-green/15 text-green"
-                  : "bg-orange/15 text-orange";
-
+            const originalIndex = total - (start + i);
             return (
-              <div
-                key={start + i}
-                className={`rounded-xl border-l-[3px] ${roleClass} bg-bg-card px-[18px] py-3.5`}
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <span
-                    className={`rounded px-2 py-0.5 text-[11px] font-bold ${tagClass}`}
-                  >
-                    {msg.role}
-                  </span>
-                  <span className="text-[11px] text-text-muted">
-                    {fmtDateTime(msg.timestamp)}
-                  </span>
-                  <span className="text-[11px] text-text-muted">
-                    #{start + i + 1}
-                  </span>
-                </div>
-                <div className="whitespace-pre-wrap break-words text-sm leading-relaxed text-text-secondary">
-                  {(msg.content || []).length === 0 ? (
-                    <span className="text-text-muted">(empty)</span>
-                  ) : (
-                    msg.content.map((block, j) => {
-                      if (block.type === "text" && block.text) {
-                        return <div key={j}>{block.text}</div>;
-                      }
-                      if (block.type === "thinking") {
-                        return (
-                          <div
-                            key={j}
-                            className="text-[13px] italic text-text-muted"
-                          >
-                            {block.text}
-                          </div>
-                        );
-                      }
-                      if (block.type === "tool_use") {
-                        return (
-                          <div
-                            key={j}
-                            className="my-1.5 rounded-md border border-border bg-bg-tertiary px-3 py-2 text-[13px]"
-                          >
-                            <span className="font-semibold text-purple">
-                              {block.name}
-                            </span>
-                            {block.input_summary && (
-                              <div className="mt-1 truncate font-mono text-xs text-text-muted">
-                                {block.input_summary}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-                      if (block.type === "tool_result") {
-                        return (
-                          <div
-                            key={j}
-                            className={`my-1.5 max-h-[120px] overflow-hidden rounded-md border bg-bg-tertiary px-3 py-2 font-mono text-xs ${
-                              block.is_error
-                                ? "border-red text-red"
-                                : "border-border text-text-muted"
-                            }`}
-                          >
-                            {block.text || "(no output)"}
-                          </div>
-                        );
-                      }
-                      return null;
-                    })
-                  )}
-                </div>
-              </div>
+              <MessageCard key={start + i} msg={msg} index={originalIndex} />
             );
           })
         )}

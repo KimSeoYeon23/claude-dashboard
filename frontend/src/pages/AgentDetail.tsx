@@ -124,7 +124,7 @@ export default function AgentDetail() {
           <span className="h-3 w-3 animate-[pulse_2s_ease-in-out_infinite] rounded-full bg-green" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-text-primary">
+          <h2 className="font-mono text-xl font-bold text-text-primary">
             Agent PID {agent.pid}
           </h2>
           <div className="text-[13px] text-text-muted">
@@ -150,14 +150,14 @@ export default function AgentDetail() {
       </div>
 
       {/* Meta info */}
-      <div className="mb-6 rounded-xl bg-bg-card p-5">
+      <div className="mb-6 glass-card p-5">
         <div className="grid grid-cols-2 gap-4 text-sm max-md:grid-cols-1">
           <div>
             <span className="text-text-muted">Session: </span>
             {agent.sessionId ? (
               <Link
                 to={`/session/${agent.sessionId}`}
-                className="font-mono text-accent"
+                className="font-mono text-accent glow-accent"
               >
                 {agent.sessionId}
               </Link>
@@ -260,7 +260,7 @@ function ActivityItem({
 
   return (
     <div
-      className={`rounded-xl border-l-[3px] ${borderColor} bg-bg-card px-4 py-3 ${hasFullText ? "cursor-pointer transition-colors hover:bg-bg-tertiary" : ""}`}
+      className={`rounded-xl border-l-[3px] ${borderColor} glass-card px-4 py-3 ${hasFullText ? "cursor-pointer transition-colors hover:bg-bg-tertiary/40" : ""}`}
       onClick={hasFullText ? onToggle : undefined}
     >
       <div className="mb-1 flex items-center gap-2">

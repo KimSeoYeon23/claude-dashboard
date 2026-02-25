@@ -76,14 +76,14 @@ def parse_session_detail(fp: Path):
             display_parts = []
 
             if isinstance(content, str):
-                display_parts.append({"type": "text", "text": content[:500]})
+                display_parts.append({"type": "text", "text": content[:10000]})
             elif isinstance(content, list):
                 for block in content:
                     btype = block.get("type")
                     if btype == "text":
                         display_parts.append({
                             "type": "text",
-                            "text": block.get("text", "")[:500],
+                            "text": block.get("text", "")[:10000],
                         })
                     elif btype == "thinking":
                         display_parts.append({"type": "thinking", "text": "(thinking...)"})
@@ -104,10 +104,10 @@ def parse_session_detail(fp: Path):
                     elif btype == "tool_result":
                         result_content = block.get("content", "")
                         if isinstance(result_content, list):
-                            texts = [r.get("text", "")[:200] for r in result_content if r.get("type") == "text"]
-                            result_text = "\n".join(texts)[:300]
+                            texts = [r.get("text", "")[:5000] for r in result_content if r.get("type") == "text"]
+                            result_text = "\n".join(texts)[:5000]
                         elif isinstance(result_content, str):
-                            result_text = result_content[:300]
+                            result_text = result_content[:5000]
                         else:
                             result_text = ""
                         display_parts.append({

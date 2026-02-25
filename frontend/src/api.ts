@@ -98,6 +98,12 @@ export interface SessionDetail {
 // ── Fetch wrapper ──
 
 export async function fetchApi<T>(path: string): Promise<T> {
+  const match = document.cookie.match(/(?:^|; )username=([^;]*)/);
+  const username = match ? decodeURIComponent(match[1]) : null;
+  if (username) {
+    const sep = path.includes("?") ? "&" : "?";
+    path = `${path}${sep}user=${encodeURIComponent(username)}`;
+  }
   const res = await fetch(path);
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json() as Promise<T>;

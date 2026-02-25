@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import STATIC_DIR
 from .db import init_db
-from .routes import stats, sessions, projects, agents, sync, register, notifications
+from .routes import stats, sessions, projects, agents, sync, register, notifications, summarize
 from .services.notifier import notify_user
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ app.include_router(agents.router)
 app.include_router(sync.router)
 app.include_router(register.router)
 app.include_router(notifications.router)
+app.include_router(summarize.router)
 
 
 @app.exception_handler(Exception)

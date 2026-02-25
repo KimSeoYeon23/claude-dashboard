@@ -40,13 +40,13 @@ export default function Login() {
 
   return (
     <div className="flex min-h-[calc(100vh-3rem)] items-center justify-center">
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-bg-card p-8">
+      <div className="w-full max-w-sm rounded-2xl glass-card p-8">
         {/* 로고 + 제목 */}
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-xl font-bold text-accent">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 font-mono text-xl font-bold text-accent glow-accent">
             &gt;_
           </div>
-          <h1 className="text-xl font-bold text-text-primary">
+          <h1 className="font-mono text-xl font-bold text-text-primary">
             Claude Code Dashboard
           </h1>
           <p className="text-sm text-text-secondary">

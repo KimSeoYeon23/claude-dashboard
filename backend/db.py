@@ -39,6 +39,14 @@ def init_db(max_retries: int = 30, delay: float = 2.0):
                         INDEX idx_notifications_created (created_at)
                     )
                 """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS session_summaries (
+                        session_id VARCHAR(255) PRIMARY KEY,
+                        username   VARCHAR(255) NOT NULL,
+                        summary    TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
             logger.info("MySQL 테이블 초기화 완료")
             return
         except pymysql.err.OperationalError as e:
