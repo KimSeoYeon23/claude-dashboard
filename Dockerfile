@@ -1,8 +1,8 @@
 # Stage 1: 프론트엔드 빌드
 FROM node:20-alpine AS frontend
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile
+COPY frontend/package.json ./
+RUN corepack enable && pnpm install
 COPY frontend/ .
 RUN pnpm build
 
