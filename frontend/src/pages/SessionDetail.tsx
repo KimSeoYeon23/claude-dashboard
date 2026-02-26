@@ -109,7 +109,7 @@ function AISummary({ sessionId }: { sessionId: string }) {
       <div className="mb-6">
         <span className="text-[13px] text-red">요약 생성 실패</span>
         <button
-          onClick={retryStream}
+          onClick={() => retryStream()}
           className="ml-3 text-[13px] text-accent hover:text-accent-hover"
         >
           다시 시도
@@ -323,7 +323,7 @@ function MessageCard({
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
-  const [overflows, setOverflows] = useState(false);
+  const [, setOverflows] = useState(false);
 
   const checkOverflow = useCallback(() => {
     const el = contentRef.current;
