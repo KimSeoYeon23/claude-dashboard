@@ -95,6 +95,25 @@ export interface SessionDetail {
   subagentIds: string[];
 }
 
+// ── Axios instance ──
+
+import axios from "axios";
+
+function getUsername(): string | null {
+  const match = document.cookie.match(/(?:^|; )username=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+export const api = axios.create();
+
+api.interceptors.request.use((config) => {
+  const username = getUsername();
+  if (username) {
+    config.params = { ...config.params, user: username };
+  }
+  return config;
+});
+
 // ── Error reporting ──
 
 export async function reportError(
@@ -103,21 +122,12 @@ export async function reportError(
   extra?: { stack?: string; url?: string; componentStack?: string },
 ) {
   try {
-    const match = document.cookie.match(/(?:^|; )username=([^;]*)/);
-    const username = match ? decodeURIComponent(match[1]) : null;
-    let path = "/api/report-error";
-    if (username) path += `?user=${encodeURIComponent(username)}`;
-
     const stack = [extra?.stack, extra?.componentStack].filter(Boolean).join("\n\n");
-    await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type,
-        message,
-        url: extra?.url ?? window.location.href,
-        stack: stack || undefined,
-      }),
+    await api.post("/api/report-error", {
+      type,
+      message,
+      url: extra?.url ?? window.location.href,
+      stack: stack || undefined,
     });
   } catch {
     // 에러 리포팅 실패는 무시
@@ -127,17 +137,15 @@ export async function reportError(
 // ── Fetch wrapper ──
 
 export async function fetchApi<T>(path: string): Promise<T> {
-  const match = document.cookie.match(/(?:^|; )username=([^;]*)/);
-  const username = match ? decodeURIComponent(match[1]) : null;
-  if (username) {
-    const sep = path.includes("?") ? "&" : "?";
-    path = `${path}${sep}user=${encodeURIComponent(username)}`;
+  try {
+    const res = await api.get<T>(path);
+    return res.data;
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response) {
+      const errMsg = `API ${err.response.status}: ${path}`;
+      reportError("api_error", errMsg);
+      throw new Error(`API ${err.response.status}`);
+    }
+    throw err;
   }
-  const res = await fetch(path);
-  if (!res.ok) {
-    const errMsg = `API ${res.status}: ${path}`;
-    reportError("api_error", errMsg);
-    throw new Error(`API ${res.status}`);
-  }
-  return res.json() as Promise<T>;
 }

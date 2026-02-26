@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { useAuth } from "../auth";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 
@@ -19,20 +20,15 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id_token: idToken }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.detail || "Google 로그인 실패");
-        return;
-      }
+      const { data } = await axios.post("/api/auth/google", { id_token: idToken });
       auth.login(data.token, data.username);
       navigate("/setup");
-    } catch {
-      setError("서버에 연결할 수 없습니다");
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else {
+        setError("서버에 연결할 수 없습니다");
+      }
     } finally {
       setLoading(false);
     }

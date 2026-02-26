@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import axios from "axios";
 
 declare global {
   interface Window {
@@ -28,9 +29,8 @@ export default function GoogleLoginButton({ onSuccess }: Props) {
   const [clientId, setClientId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/auth/google/client-id")
-      .then((res) => res.json())
-      .then((data) => {
+    axios.get("/api/auth/google/client-id")
+      .then(({ data }) => {
         if (data.client_id) setClientId(data.client_id);
       })
       .catch(() => {});
