@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 # 기존 환경변수를 덮어쓰지 않음 (Docker 환경에서는 compose가 주입, 로컬에서는 .env에서 보충)
 load_dotenv(Path(__file__).parent.parent / ".env", override=False)
 
-PORT = 8420
+PORT = int(os.environ.get("PORT", "8420"))
 STATIC_DIR = Path(__file__).parent.parent / "static"
 
 # Docker 환경: 동기화 데이터 저장 경로
