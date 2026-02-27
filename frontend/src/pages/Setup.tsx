@@ -54,7 +54,7 @@ export default function Setup() {
   const serverUrl = window.location.origin;
 
   // ── macOS / Linux ──
-  const bashCommand = `_P=/tmp/claude-projects.tar.gz; (cd "$HOME/.claude/projects" && find . -name '*.jsonl' -not -path '*/subagents/*' -mtime -1 | tar czf "$_P" -T - 2>/dev/null); curl -s -X POST ${serverUrl}/api/sync -H 'Authorization: Bearer ${auth.token}' -F stats=@"$HOME/.claude/stats-cache.json" -F history=@"$HOME/.claude/history.jsonl" $([ -s "$_P" ] && echo "-F projects=@$_P"); rm -f "$_P"`;
+  const bashCommand = `_P=/tmp/claude-projects.tar.gz; (cd "$HOME/.claude/projects" && tar czf "$_P" . 2>/dev/null); curl -s -X POST ${serverUrl}/api/sync -H 'Authorization: Bearer ${auth.token}' -F history=@"$HOME/.claude/history.jsonl" $([ -f "$HOME/.claude/stats-cache.json" ] && echo "-F stats=@$HOME/.claude/stats-cache.json") $([ -s "$_P" ] && echo "-F projects=@$_P"); rm -f "$_P"`;
 
   const bashSettingsJson = JSON.stringify(
     {
