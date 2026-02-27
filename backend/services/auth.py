@@ -3,7 +3,7 @@ import secrets
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
-from ..config import AUTH_TOKENS, USER_EMAILS, GOOGLE_CLIENT_ID
+from ..config import AUTH_TOKENS, USER_EMAILS, GOOGLE_CLIENT_ID, DATA_DIR
 from ..db import get_conn
 
 
@@ -78,6 +78,8 @@ def google_login(token_str: str) -> dict:
     email = idinfo.get("email", "")
     name = idinfo.get("name", "")
 
+    preferred = email.split("@")[0] if email else None
+
     with get_conn() as conn:
         # 1) google_id로 기존 유저 조회
         conn.execute(
@@ -85,7 +87,8 @@ def google_login(token_str: str) -> dict:
         )
         row = conn.fetchone()
         if row:
-            return {"ok": True, "username": row["username"], "token": row["token"]}
+            username = _maybe_rename(conn, row["username"], preferred)
+            return {"ok": True, "username": username, "token": row["token"]}
 
         # 2) email로 기존 유저 조회 → google_id 연결
         if email:
@@ -98,10 +101,11 @@ def google_login(token_str: str) -> dict:
                     "UPDATE users SET google_id = %s WHERE username = %s",
                     (google_id, row["username"]),
                 )
-                return {"ok": True, "username": row["username"], "token": row["token"]}
+                username = _maybe_rename(conn, row["username"], preferred)
+                return {"ok": True, "username": username, "token": row["token"]}
 
         # 3) 새 유저 생성
-        base_username = email.split("@")[0] if email else (name or f"user_{google_id[:8]}")
+        base_username = preferred or f"user_{google_id[:8]}"
         username = base_username
         suffix = 1
         conn.execute("SELECT id FROM users WHERE username = %s", (username,))
@@ -117,3 +121,26 @@ def google_login(token_str: str) -> dict:
         )
 
     return {"ok": True, "username": username, "token": app_token}
+
+
+def _maybe_rename(conn, old: str, preferred: str | None) -> str:
+    """username이 preferred와 다르면 DB + DATA_DIR 디렉토리를 함께 변경"""
+    if not preferred or old == preferred:
+        return old
+
+    # 중복 체크 — 다른 유저가 이미 사용 중이면 변경하지 않음
+    conn.execute("SELECT id FROM users WHERE username = %s", (preferred,))
+    if conn.fetchone():
+        return old
+
+    conn.execute(
+        "UPDATE users SET username = %s WHERE username = %s", (preferred, old)
+    )
+
+    if DATA_DIR:
+        old_dir = DATA_DIR / old
+        new_dir = DATA_DIR / preferred
+        if old_dir.exists() and not new_dir.exists():
+            old_dir.rename(new_dir)
+
+    return preferred
