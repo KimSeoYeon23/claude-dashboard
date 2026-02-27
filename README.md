@@ -29,6 +29,7 @@ Claude Code를 쓰다 보면 세션이 쌓이는데, 어떤 에이전트가 돌�
 |------|------|
 | Frontend | Vite 6 + React 19 + TypeScript |
 | 스타일링 | Tailwind CSS v4 (OLED + Glassmorphism) |
+| HTTP 클라이언트 | axios |
 | 차트 | Chart.js + react-chartjs-2 |
 | 라우팅 | React Router v7 (HashRouter) |
 | Backend | Python FastAPI + uvicorn |
@@ -101,18 +102,66 @@ Caddy가 Let's Encrypt 인증서를 자동 발급합니다.
 
 ### 로그인
 
-사이트에 접속해서 Google 계정으로 로그인하면 토큰이 자동 발급됩니다.
+사이트에 접속해서 Google 계정으로 로그인하면 토큰이 자동 발급됩니다. username은 Google 이메일의 `@` 앞부분이 사용됩니다.
+
+### /stats 실행 (권장)
+
+Claude Code 터미널에서 `/stats`를 한 번 실행하면 `stats-cache.json`이 생성됩니다. 이 파일에는 모델별 토큰 사용량, 비용 분석 등 상세 통계가 포함됩니다. 실행하지 않아도 대시보드는 `history.jsonl`에서 기본 통계를 계산하지만, 전체 통계를 보려면 실행을 권장합니다.
 
 ### Hook 설정
 
-발급받은 토큰을 `~/.claude/settings.json`에 추가합니다.
+#### macOS / Linux
+
+`~/.claude/settings.json`에 추가합니다.
 
 ```json
 {
   "hooks": {
-    "stop": [{
-      "command": "curl -s -X POST https://서버주소/api/sync -H 'Authorization: Bearer 내토큰' -F stats=@$HOME/.claude/stats-cache.json -F history=@$HOME/.claude/history.jsonl"
-    }]
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST https://서버주소/api/sync -H 'Authorization: Bearer 내토큰' -F stats=@\"$HOME/.claude/stats-cache.json\" -F history=@\"$HOME/.claude/history.jsonl\""
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+#### Windows (PowerShell)
+
+1. `%USERPROFILE%\.claude\sync.ps1` 파일을 생성합니다:
+
+```powershell
+$statsPath = "$env:USERPROFILE\.claude\stats-cache.json"
+$historyPath = "$env:USERPROFILE\.claude\history.jsonl"
+$curlArgs = @('-s', '-X', 'POST', 'https://서버주소/api/sync',
+    '-H', 'Authorization: Bearer 내토큰')
+if (Test-Path $statsPath) { $curlArgs += '-F', "stats=@$statsPath" }
+if (Test-Path $historyPath) { $curlArgs += '-F', "history=@$historyPath" }
+& curl.exe @curlArgs
+```
+
+> `$args`는 PowerShell 예약 변수이므로 반드시 `$curlArgs` 등 다른 이름을 사용해야 합니다. 또한 `curl`이 아닌 `curl.exe`를 사용해야 합니다 (PowerShell의 `curl`은 `Invoke-WebRequest`의 별칭).
+
+2. `%USERPROFILE%\.claude\settings.json`에 추가합니다:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \"%USERPROFILE%\\.claude\\sync.ps1\""
+          }
+        ]
+      }
+    ]
   }
 }
 ```

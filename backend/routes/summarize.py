@@ -30,14 +30,23 @@ SUMMARY_PROMPT = """다음 Claude Code 세션의 대화 내용을 분석하여 �
 def _build_conversation(detail: dict) -> tuple[str, list[str], list[str]]:
     """세션 상세에서 요약용 텍스트, 파일 목록, 도구 목록 추출"""
     lines = []
-    for msg in detail["messages"][:40]:
+    for msg in detail["messages"][:60]:
         role = msg["role"]
         parts = []
         for block in msg.get("content", []):
-            if block.get("type") == "text" and block.get("text"):
-                parts.append(block["text"][:300])
-            elif block.get("type") == "tool_use":
-                parts.append(f"[tool: {block.get('name', '')}]")
+            btype = block.get("type")
+            if btype == "tool_result":
+                continue
+            if btype == "text" and block.get("text"):
+                text = block["text"].strip()
+                # tool result 성격의 텍스트 건너뛰기 (파일 내용, 에러 등)
+                if text.startswith(("     1→", "<tool_use_error>", "File does not exist")):
+                    continue
+                parts.append(text[:300])
+            elif btype == "tool_use":
+                name = block.get("name", "")
+                summary = block.get("input_summary", "")
+                parts.append(f"[{name}: {summary}]" if summary else f"[{name}]")
         if parts:
             lines.append(f"{role}: {' | '.join(parts)}")
     return (
