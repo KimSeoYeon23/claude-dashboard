@@ -101,7 +101,7 @@ def google_login(token_str: str) -> dict:
                 return {"ok": True, "username": row["username"], "token": row["token"]}
 
         # 3) 새 유저 생성
-        base_username = name or email.split("@")[0] if email else f"user_{google_id[:8]}"
+        base_username = email.split("@")[0] if email else (name or f"user_{google_id[:8]}")
         username = base_username
         suffix = 1
         conn.execute("SELECT id FROM users WHERE username = %s", (username,))
