@@ -21,12 +21,5 @@ def api_stats(user: Optional[str] = Query(None)):
     paths = resolve_paths(user)
     data = cached(f"stats:{user or 'me'}", paths["stats_file"], load_stats)
     if data is None:
-        return {
-            "totalSessions": 0,
-            "totalMessages": 0,
-            "firstSessionDate": "",
-            "dailyActivity": [],
-            "hourCounts": {},
-            "modelUsage": {},
-        }
+        raise HTTPException(status_code=404, detail="stats-cache.json not found")
     return data
