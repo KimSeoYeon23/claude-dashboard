@@ -153,6 +153,7 @@ export default function SessionDetail() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [msgPage, setMsgPage] = useState(1);
+  const [toolFilter, setToolFilter] = useState<string | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -174,10 +175,22 @@ export default function SessionDetail() {
     );
   if (!data) return null;
 
-  const toolEntries = Object.entries(data.toolCalls || {}).sort(
+  // MCP 도구명을 보기 좋게 변환 + 같은 서버 도구끼리 합산
+  const rawCalls = data.toolCalls || {};
+  const groupedCalls: Record<string, number> = {};
+  for (const [name, count] of Object.entries(rawCalls)) {
+    if (name.startsWith("mcp__")) {
+      const parts = name.split("__");
+      const server = parts[1] || name;
+      groupedCalls[`MCP:${server}`] = (groupedCalls[`MCP:${server}`] || 0) + count;
+    } else {
+      groupedCalls[name] = (groupedCalls[name] || 0) + count;
+    }
+  }
+  const toolEntries = Object.entries(groupedCalls).sort(
     (a, b) => b[1] - a[1],
   );
-  const totalCalls = Object.values(data.toolCalls || {}).reduce(
+  const totalCalls = Object.values(rawCalls).reduce(
     (a, b) => a + b,
     0,
   );
@@ -214,16 +227,32 @@ export default function SessionDetail() {
       {toolEntries.length > 0 && (
         <div className="mb-6 flex flex-wrap gap-2">
           {toolEntries.map(([name, count]) => (
-            <span
+            <button
               key={name}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border/50 glass-card px-3 py-1 text-[13px] text-text-secondary"
+              onClick={() => {
+                setToolFilter(toolFilter === name ? null : name);
+                setMsgPage(1);
+              }}
+              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-[13px] transition-colors ${
+                toolFilter === name
+                  ? "border-accent bg-accent/15 text-accent"
+                  : "border-border/50 glass-card text-text-secondary hover:border-accent/50 hover:text-text-primary"
+              }`}
             >
               {name}
               <span className="rounded-md bg-accent px-1.5 py-px text-[11px] font-bold text-white">
                 {count}
               </span>
-            </span>
+            </button>
           ))}
+          {toolFilter && (
+            <button
+              onClick={() => { setToolFilter(null); setMsgPage(1); }}
+              className="rounded-md border border-border/50 px-3 py-1 text-[13px] text-text-muted hover:text-text-primary transition-colors"
+            >
+              필터 해제
+            </button>
+          )}
         </div>
       )}
 
@@ -276,6 +305,7 @@ export default function SessionDetail() {
           setMsgPage(p);
           timelineRef.current?.scrollIntoView({ behavior: "smooth" });
         }}
+        toolFilter={toolFilter}
         ref={timelineRef}
       />
     </>
@@ -285,33 +315,58 @@ export default function SessionDetail() {
 const COLLAPSED_HEIGHT = 200;
 
 /** 메시지 블록들로부터 한 줄 요약 생성 */
-function getMessageSummary(content: SessionDetailType["messages"][number]["content"]): string {
-  if (!content || content.length === 0) return "(empty)";
+interface MessageSummary {
+  text: string;
+  badges: { label: string; type: "skill" | "mcp" | "tool" }[];
+}
+
+function getMessageSummary(content: SessionDetailType["messages"][number]["content"]): MessageSummary {
+  if (!content || content.length === 0) return { text: "(empty)", badges: [] };
 
   const textParts: string[] = [];
   const toolNames: string[] = [];
+  const badges: MessageSummary["badges"] = [];
 
   for (const block of content) {
     if (block.type === "text" && block.text) {
       if (textParts.length === 0) {
-        const firstLine = block.text.split("\n").find((l) => l.trim()) || "";
-        textParts.push(firstLine.trim().slice(0, 120));
+        const cmdMatch = block.text.match(/<command-name>\/?([\w-]+)<\/command-name>/);
+        if (cmdMatch) {
+          textParts.push(`/${cmdMatch[1]}`);
+          badges.push({ label: "Skill", type: "skill" });
+        } else {
+          const firstLine = block.text.split("\n").find((l) => l.trim()) || "";
+          textParts.push(firstLine.trim().slice(0, 120));
+        }
       }
     } else if (block.type === "tool_use" && block.name) {
-      toolNames.push(block.name);
+      let name = block.name;
+      if (name.startsWith("mcp__")) {
+        const parts = name.split("__");
+        const server = parts[1] || "";
+        name = parts[2] || parts[1] || name;
+        if (!badges.some((b) => b.label === server)) {
+          badges.push({ label: server, type: "mcp" });
+        }
+      } else if (name === "Skill" && block.input_summary) {
+        name = block.input_summary.split(" ")[0];
+        badges.push({ label: "Skill", type: "skill" });
+      }
+      toolNames.push(name);
     }
   }
 
+  let text: string;
   if (textParts.length > 0 && toolNames.length > 0) {
-    return `${textParts[0]}${textParts[0].length >= 120 ? "..." : ""} → ${toolNames.join(", ")}`;
+    text = `${textParts[0]}${textParts[0].length >= 120 ? "..." : ""} → ${toolNames.join(", ")}`;
+  } else if (toolNames.length > 0) {
+    text = toolNames.join(" → ");
+  } else if (textParts.length > 0) {
+    text = textParts[0] + (textParts[0].length >= 120 ? "..." : "");
+  } else {
+    text = "(empty)";
   }
-  if (toolNames.length > 0) {
-    return toolNames.join(" → ");
-  }
-  if (textParts.length > 0) {
-    return textParts[0] + (textParts[0].length >= 120 ? "..." : "");
-  }
-  return "(empty)";
+  return { text, badges };
 }
 
 function MessageCard({
@@ -373,8 +428,22 @@ function MessageCard({
         </button>
       </div>
       {/* 한 줄 요약 */}
-      <div className="truncate text-[13px] text-text-secondary">
-        {summary}
+      <div className="flex items-center gap-1.5 text-[13px] text-text-secondary">
+        <span className="truncate">{summary.text}</span>
+        {summary.badges.map((b, i) => (
+          <span
+            key={i}
+            className={`shrink-0 rounded-sm px-1.5 py-px text-[10px] font-medium ${
+              b.type === "skill"
+                ? "bg-accent/15 text-accent"
+                : b.type === "mcp"
+                  ? "bg-purple/15 text-purple"
+                  : "bg-text-muted/15 text-text-muted"
+            }`}
+          >
+            {b.label}
+          </span>
+        ))}
       </div>
       {/* 전체 내용 */}
       {expanded && (
@@ -384,6 +453,15 @@ function MessageCard({
         >
           {msg.content.map((block, j) => {
             if (block.type === "text" && block.text) {
+              const cmdMatch = block.text.match(/<command-name>\/?([\w-]+)<\/command-name>/);
+              if (cmdMatch) {
+                return (
+                  <div key={j} className="my-1.5 inline-flex items-center gap-1.5 rounded-md border border-accent/30 bg-accent/10 px-3 py-1.5 text-[13px]">
+                    <span className="font-semibold text-accent">/{cmdMatch[1]}</span>
+                    <span className="rounded-sm bg-accent/15 px-1.5 py-px text-[10px] font-medium text-accent">Skill</span>
+                  </div>
+                );
+              }
               return <div key={j}>{block.text}</div>;
             }
             if (block.type === "thinking") {
@@ -397,15 +475,33 @@ function MessageCard({
               );
             }
             if (block.type === "tool_use") {
+              const isMcp = block.name?.startsWith("mcp__");
+              const isSkill = block.name === "Skill";
+              let displayName = block.name || "";
+              let badge = "";
+              if (isMcp) {
+                const parts = displayName.split("__");
+                badge = parts[1] || "";
+                displayName = parts[2] || displayName;
+              }
+              if (isSkill && block.input_summary) {
+                displayName = block.input_summary.split(" ")[0];
+                badge = "Skill";
+              }
               return (
                 <div
                   key={j}
                   className="my-1.5 rounded-md border border-border/50 bg-bg-tertiary/40 backdrop-blur-sm px-3 py-2 text-[13px]"
                 >
                   <span className="font-semibold text-purple">
-                    {block.name}
+                    {displayName}
                   </span>
-                  {block.input_summary && (
+                  {badge && (
+                    <span className="ml-1.5 rounded-sm bg-purple/15 px-1.5 py-px text-[10px] font-medium text-purple">
+                      {badge}
+                    </span>
+                  )}
+                  {block.input_summary && !isSkill && (
                     <div className="mt-1 truncate font-mono text-xs text-text-muted">
                       {block.input_summary}
                     </div>
@@ -439,14 +535,41 @@ const MessageTimeline = ({
   messages,
   page,
   onPageChange,
+  toolFilter,
   ref,
 }: {
   messages: SessionDetailType["messages"];
   page: number;
   onPageChange: (p: number) => void;
+  toolFilter: string | null;
   ref: React.RefObject<HTMLDivElement | null>;
 }) => {
-  const reversed = [...messages].reverse();
+  // 대화 턴 단위로 그룹핑 (유저 질문 → 도구 호출 → 결과)
+  const filtered = (() => {
+    if (!toolFilter) return messages;
+    const matchTool = (block: (typeof messages)[number]["content"][number]) => {
+      if (block.type !== "tool_use" || !block.name) return false;
+      if (toolFilter.startsWith("MCP:")) {
+        return block.name.startsWith(`mcp__${toolFilter.slice(4)}__`);
+      }
+      return block.name === toolFilter;
+    };
+    // 유저의 text 메시지를 기준으로 턴 분리
+    const turns: (typeof messages)[] = [];
+    let current: typeof messages = [];
+    for (const msg of messages) {
+      const isUserQuestion = msg.role === "user" && msg.content.some((b) => b.type === "text");
+      if (isUserQuestion && current.length > 0) {
+        turns.push(current);
+        current = [];
+      }
+      current.push(msg);
+    }
+    if (current.length > 0) turns.push(current);
+    // 해당 도구를 사용한 턴만 필터
+    return turns.filter((turn) => turn.some((msg) => msg.content.some(matchTool))).flat();
+  })();
+  const reversed = [...filtered].reverse();
   const total = reversed.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const start = (page - 1) * PAGE_SIZE;

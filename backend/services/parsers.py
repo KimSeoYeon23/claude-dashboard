@@ -20,6 +20,25 @@ def summarize_tool_input(tool_name, tool_input):
         return f'{tool_input.get("pattern", "")} in {tool_input.get("path", "")}'
     if tool_name in ("Task", "task"):
         return tool_input.get("description", "")[:100]
+    if tool_name == "Skill":
+        skill = tool_input.get("skill", "")
+        args = tool_input.get("args", "")
+        return f"/{skill} {args}".strip() if skill else ""
+    if tool_name == "ToolSearch":
+        return tool_input.get("query", "")[:100]
+    if tool_name.startswith("mcp__"):
+        # mcp__{server}__{tool} → server/tool 형태로 표시
+        parts = tool_name.split("__", 2)
+        server = parts[1] if len(parts) > 1 else ""
+        tool = parts[2] if len(parts) > 2 else ""
+        summary_parts = []
+        for k in ("filepath", "file_path", "path", "query", "content"):
+            if k in tool_input:
+                v = tool_input[k]
+                if isinstance(v, str):
+                    summary_parts.append(v[:80])
+                    break
+        return f"{server}/{tool}" + (f" {summary_parts[0]}" if summary_parts else "")
     keys = list(tool_input.keys())[:3]
     parts = []
     for k in keys:
