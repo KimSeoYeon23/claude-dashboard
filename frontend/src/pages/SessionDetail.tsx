@@ -239,7 +239,19 @@ export default function SessionDetail() {
                   : "border-border/50 glass-card text-text-secondary hover:border-accent/50 hover:text-text-primary"
               }`}
             >
-              {name}
+              {name.startsWith("Skill:/") ? (
+                <>
+                  <span className="text-accent">{name.slice(6)}</span>
+                  <span className="rounded-sm bg-accent/15 px-1 py-px text-[10px] font-medium text-accent">Skill</span>
+                </>
+              ) : name.startsWith("MCP:") ? (
+                <>
+                  <span>{name.slice(4)}</span>
+                  <span className="rounded-sm bg-purple/15 px-1 py-px text-[10px] font-medium text-purple">MCP</span>
+                </>
+              ) : (
+                name
+              )}
               <span className="rounded-md bg-accent px-1.5 py-px text-[11px] font-bold text-white">
                 {count}
               </span>
@@ -551,6 +563,10 @@ const MessageTimeline = ({
       if (block.type !== "tool_use" || !block.name) return false;
       if (toolFilter.startsWith("MCP:")) {
         return block.name.startsWith(`mcp__${toolFilter.slice(4)}__`);
+      }
+      if (toolFilter.startsWith("Skill:/")) {
+        const skillName = toolFilter.slice(7);
+        return block.name === "Skill" && block.input_summary?.startsWith(`/${skillName}`);
       }
       return block.name === toolFilter;
     };

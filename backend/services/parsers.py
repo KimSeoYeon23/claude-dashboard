@@ -108,8 +108,13 @@ def parse_session_detail(fp: Path):
                         display_parts.append({"type": "thinking", "text": "(thinking...)"})
                     elif btype == "tool_use":
                         tool_name = block.get("name", "unknown")
-                        tool_calls[tool_name] = tool_calls.get(tool_name, 0) + 1
                         tool_input = block.get("input", {})
+                        # Skill은 개별 스킬명으로 기록
+                        if tool_name == "Skill" and isinstance(tool_input.get("skill"), str):
+                            display_name = f"Skill:/{tool_input['skill']}"
+                        else:
+                            display_name = tool_name
+                        tool_calls[display_name] = tool_calls.get(display_name, 0) + 1
                         for key in ("file_path", "path", "filepath"):
                             if key in tool_input:
                                 val = tool_input[key]
