@@ -26,7 +26,13 @@ export default function Setup() {
   const settingsJson = JSON.stringify(
     {
       hooks: {
-        Stop: [{ command: hookCommand }],
+        Stop: [
+          {
+            hooks: [
+              { type: "command", command: hookCommand },
+            ],
+          },
+        ],
       },
     },
     null,
