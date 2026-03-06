@@ -41,11 +41,17 @@ def init_db(max_retries: int = 30, delay: float = 2.0):
                 """)
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS session_summaries (
-                        session_id VARCHAR(255) PRIMARY KEY,
+                        session_id VARCHAR(255) NOT NULL,
                         username   VARCHAR(255) NOT NULL,
                         summary    TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (session_id, username)
                     )
+                """)
+                cursor.execute("""
+                    ALTER TABLE session_summaries
+                    DROP PRIMARY KEY,
+                    ADD PRIMARY KEY (session_id, username)
                 """)
             logger.info("MySQL 테이블 초기화 완료")
             return
@@ -54,6 +60,12 @@ def init_db(max_retries: int = 30, delay: float = 2.0):
             if attempt == max_retries:
                 raise
             time.sleep(delay)
+        except pymysql.err.ProgrammingError as e:
+            # 이미 원하는 PK 구조인 경우 ALTER가 실패할 수 있다.
+            if "Multiple primary key defined" in str(e):
+                logger.info("session_summaries PK already migrated")
+                return
+            raise
 
 
 @contextmanager

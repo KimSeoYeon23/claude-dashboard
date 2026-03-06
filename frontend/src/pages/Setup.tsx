@@ -54,7 +54,7 @@ export default function Setup() {
   const serverUrl = window.location.origin;
 
   // ── macOS / Linux ──
-  const bashCommand = `_P=/tmp/claude-projects.tar.gz; (cd "$HOME/.claude/projects" && tar czf "$_P" . 2>/dev/null); curl -s -X POST ${serverUrl}/api/sync -H 'Authorization: Bearer ${auth.token}' -F history=@"$HOME/.claude/history.jsonl" $([ -f "$HOME/.claude/stats-cache.json" ] && echo "-F stats=@$HOME/.claude/stats-cache.json") $([ -s "$_P" ] && echo "-F projects=@$_P"); rm -f "$_P"`;
+  const bashCommand = `_P=/tmp/claude-projects.tar.gz; (cd "$HOME/.claude/projects" && tar czf "$_P" . 2>/dev/null); curl -s -X POST ${serverUrl}/api/sync -H 'Authorization: Bearer ${auth.token}' -F history=@"$HOME/.claude/history.jsonl" -F projects_mode=replace $([ -f "$HOME/.claude/stats-cache.json" ] && echo "-F stats=@$HOME/.claude/stats-cache.json") $([ -s "$_P" ] && echo "-F projects=@$_P"); rm -f "$_P"`;
 
   const bashSettingsJson = JSON.stringify(
     {
@@ -86,6 +86,7 @@ $curlArgs = @(
 
 if (Test-Path $statsPath) { $curlArgs += '-F', "stats=@$statsPath" }
 if (Test-Path $historyPath) { $curlArgs += '-F', "history=@$historyPath" }
+$curlArgs += '-F', 'projects_mode=replace'
 
 if (Test-Path $projDir) {
     $files = Get-ChildItem $projDir -Recurse -Filter *.jsonl |

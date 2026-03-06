@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { reportError, fetchApi, api } from "../api";
+import { reportError, fetchApi, api, getAuthHeaders } from "../api";
 
 beforeEach(() => {
   vi.restoreAllMocks();
   // 쿠키 초기화
   Object.defineProperty(document, "cookie", {
     writable: true,
-    value: "username=testuser",
+    value: "username=testuser; token=test-token",
   });
 });
 
@@ -39,6 +39,12 @@ describe("reportError", () => {
 });
 
 describe("fetchApi", () => {
+  it("인증 토큰이 있으면 Authorization 헤더를 만든다", () => {
+    expect(getAuthHeaders()).toEqual({
+      Authorization: "Bearer test-token",
+    });
+  });
+
   it("성공 시 JSON 응답을 반환한다", async () => {
     const mockData = { sessions: [], total: 0 };
     vi.spyOn(api, "get").mockResolvedValue({ data: mockData });

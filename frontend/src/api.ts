@@ -97,19 +97,26 @@ export interface SessionDetail {
 
 // ── Axios instance ──
 
-import axios from "axios";
+import axios, { AxiosHeaders } from "axios";
 
-function getUsername(): string | null {
-  const match = document.cookie.match(/(?:^|; )username=([^;]*)/);
+function getToken(): string | null {
+  const match = document.cookie.match(/(?:^|; )token=([^;]*)/);
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export const api = axios.create();
 
 api.interceptors.request.use((config) => {
-  const username = getUsername();
-  if (username) {
-    config.params = { ...config.params, user: username };
+  const token = getToken();
+  if (token) {
+    const headers = AxiosHeaders.from(config.headers);
+    headers.set("Authorization", `Bearer ${token}`);
+    config.headers = headers;
   }
   return config;
 });

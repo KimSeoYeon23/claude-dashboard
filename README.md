@@ -1,6 +1,8 @@
 # Claude Code Dashboard
 
-Claude Code를 쓰다 보면 세션이 쌓이는데, 어떤 에이전트가 돌고 있는지, 토큰은 얼마나 쓰고 있는지 파악하기 어렵습니다. 각자 머신에서 `stop` hook으로 데이터를 서버에 보내면, 본인의 사용 현황을 웹 대시보드에서 확인할 수 있습니다.
+Claude Code를 계속 쓰다 보니 세션은 쌓이는데, 정작 내가 뭘 했는지는 금방 흐려졌습니다. 어떤 에이전트가 돌고 있었는지, 토큰을 얼마나 썼는지, 특정 세션에서 어떤 파일을 건드렸는지 다시 보려면 여기저기 뒤져야 했습니다.
+
+그래서 이 대시보드를 만들었습니다. 로컬 `stop` hook으로 세션 데이터를 자동으로 모으고, 서버에서 정리해서 활성 에이전트, 세션 흐름, 토큰 사용량, 수정 파일, 오류 신호를 한 화면에서 보게 했습니다. 단순히 숫자만 보여주는 화면보다는, 작업 흐름을 다시 따라가고 필요할 때 바로 꺼내볼 수 있는 개인용 도구에 가깝습니다.
 
 ![Tech Stack](https://img.shields.io/badge/React_19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
@@ -11,17 +13,18 @@ Claude Code를 쓰다 보면 세션이 쌓이는데, 어떤 에이전트가 돌�
 
 ## 뭘 볼 수 있나
 
-- 일별/시간별 활동 차트, 모델별 토큰 사용량
-- 돌고 있는 에이전트 목록 (CPU/MEM, 사용 중인 도구)
-- 에이전트 Live Activity 타임라인 — 5초마다 갱신, 새로고침해도 유지
-- 세션별 메시지 타임라인, 도구 호출 횟수, 수정한 파일
-- 세션 AI 요약 — Anthropic API로 자동 생성, DB에 캐싱
-- 메시지별 한줄 요약 + 펼치기/접기
-- 프로젝트 필터, 검색, 페이지네이션 (세션 중복 자동 제거)
-- Claude 에러/무응답/장애 시 Slack 알림
-- 프론트엔드 에러 자동 리포팅 (API 실패, 렌더링 크래시 → Slack 알림)
-- Toast 알림 시스템 (우상단, 자동 닫힘)
-- Error Boundary (렌더링 크래시 시 fallback UI + 자동 리포팅)
+- 날짜별, 시간대별 활동량과 모델별 토큰 사용량
+- 지금 돌고 있는 에이전트 목록과 CPU/MEM 사용량
+- 최근 에이전트 활동 타임라인
+- 세션별 메시지 흐름, 도구 호출 횟수, 수정한 파일
+- 세션 내용을 빠르게 훑어볼 수 있는 AI 요약
+- 메시지별 한줄 요약과 펼치기/접기
+- 프로젝트 필터, 검색, 페이지네이션
+- Claude 에러나 무응답 상황을 잡아주는 Slack 알림
+- API 실패나 렌더링 크래시를 남기는 프론트엔드 에러 리포팅
+- 간단한 Toast 알림과 Error Boundary
+
+내가 보고 싶었던 건 단순한 사용량 숫자만은 아니었습니다. 어느 세션에서 무슨 작업을 했는지, 어떤 도구를 많이 썼는지, 에러가 어디서 터졌는지까지 한 번에 따라가고 싶었습니다. 그래서 수집, 파싱, 시각화, 알림을 따로 나누지 않고 한 흐름으로 묶는 쪽으로 만들었습니다.
 
 ## 기술 스택
 
@@ -36,6 +39,12 @@ Claude Code를 쓰다 보면 세션이 쌓이는데, 어떤 에이전트가 돌�
 | DB | MySQL 8.0 |
 | 인증 | Google OAuth + Bearer 토큰 |
 | 배포 | Docker + Caddy (HTTPS 자동) |
+
+## 구현하면서 신경 쓴 점
+
+- Claude Code 로그를 그대로 보여주기보다, 세션 단위로 다시 읽기 쉽게 정리하는 데 집중했습니다.
+- 동기화가 꼬이거나 오래된 데이터가 남지 않도록 hook 기반 sync 흐름과 서버 쪽 replace 동작을 따로 다뤘습니다.
+- 개인용 도구로 시작했지만, 인증과 사용자 스코프는 나중에 문제가 되지 않도록 초반부터 분리해뒀습니다.
 
 ## 시작하기
 
@@ -185,21 +194,21 @@ if (Test-Path $historyPath) { $curlArgs += '-F', "history=@$historyPath" }
 | Method | Path | 설명 |
 |--------|------|------|
 | GET | `/api/users` | 유저 목록 |
-| GET | `/api/stats?user=` | 사용 통계 |
-| GET | `/api/projects?user=` | 프로젝트 목록 |
+| GET | `/api/stats` | 사용 통계 (Bearer 인증) |
+| GET | `/api/projects` | 프로젝트 목록 (Bearer 인증) |
 | GET | `/api/sessions` | 세션 목록 (필터, 검색, 페이지네이션) |
-| GET | `/api/session/:id` | 세션 상세 |
-| GET | `/api/agents` | 활성 에이전트 |
-| GET | `/api/agent/:pid` | 에이전트 상세 + 도구 통계 |
+| GET | `/api/session/:id` | 세션 상세 (Bearer 인증) |
+| GET | `/api/agents` | 활성 에이전트 (Bearer 인증) |
+| GET | `/api/agent/:pid` | 에이전트 상세 + 도구 통계 (Bearer 인증) |
 | POST | `/api/sync` | 데이터 동기화 (Bearer, multipart) |
 | POST | `/api/auth/google` | Google OAuth 로그인 |
 | GET | `/api/auth/google/client-id` | Google Client ID 조회 |
 | POST | `/api/register` | 유저 등록 |
 | GET | `/api/me` | 내 정보 (Bearer) |
-| GET | `/api/session/:id/summary` | 세션 AI 요약 (캐시) |
-| GET | `/api/session/:id/summary/stream` | 세션 AI 요약 (SSE 스트리밍 생성) |
-| POST | `/api/report-error?user=` | 프론트엔드 에러 리포팅 |
-| GET | `/api/notifications?user=` | 알림 이력 |
+| GET | `/api/session/:id/summary` | 세션 AI 요약 (캐시, Bearer 인증) |
+| GET | `/api/session/:id/summary/stream` | 세션 AI 요약 (SSE 스트리밍 생성, Bearer 인증) |
+| POST | `/api/report-error` | 프론트엔드 에러 리포팅 |
+| GET | `/api/notifications` | 알림 이력 (Bearer 인증) |
 
 ## 환경변수
 

@@ -1,6 +1,8 @@
 import tarfile
 import traceback
 from io import BytesIO
+from pathlib import Path
+import shutil
 
 from fastapi import APIRouter, Form, Header, HTTPException, UploadFile, File
 
@@ -12,6 +14,22 @@ from ..services.analyzer import analyze_history
 router = APIRouter()
 
 
+def replace_projects_from_archive(projects_dir: Path, content: bytes):
+    if not content:
+        shutil.rmtree(projects_dir, ignore_errors=True)
+        return
+
+    buf = BytesIO(content)
+    with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+        for member in tar.getmembers():
+            if member.name.startswith("/") or ".." in member.name:
+                raise HTTPException(status_code=400, detail="Invalid tar member path")
+
+        shutil.rmtree(projects_dir, ignore_errors=True)
+        projects_dir.mkdir(parents=True, exist_ok=True)
+        tar.extractall(path=str(projects_dir))
+
+
 @router.post("/api/sync")
 async def api_sync(
     stats: UploadFile = File(None),
@@ -20,6 +38,7 @@ async def api_sync(
     authorization: str = Header(...),
     status: str = Form(None),
     error_message: str = Form(None),
+    projects_mode: str = Form(None),
 ):
     if not DATA_DIR:
         raise HTTPException(status_code=500, detail="DATA_DIR not configured")
@@ -33,7 +52,7 @@ async def api_sync(
     if not username:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    if not stats and not history and not projects and not status:
+    if not stats and not history and not projects and not status and not projects_mode:
         raise HTTPException(status_code=400, detail="No files provided")
 
     user_dir = DATA_DIR / username
@@ -49,16 +68,15 @@ async def api_sync(
             content = await history.read()
             (user_dir / "history.jsonl").write_bytes(content)
 
-        if projects:
+        if projects_mode == "replace":
+            content = await projects.read() if projects else b""
+            replace_projects_from_archive(user_dir / "projects", content)
+        elif projects:
             content = await projects.read()
             if content:
-                buf = BytesIO(content)
-                with tarfile.open(fileobj=buf, mode="r:gz") as tar:
-                    # 안전 체크: 경로 탈출 방지
-                    for member in tar.getmembers():
-                        if member.name.startswith("/") or ".." in member.name:
-                            raise HTTPException(status_code=400, detail="Invalid tar member path")
-                    tar.extractall(path=str(user_dir / "projects"))
+                replace_projects_from_archive(user_dir / "projects", content)
+    except HTTPException:
+        raise
     except Exception as e:
         notify_user(username, "sync_error", {
             "message": f"파일 저장 실패\n\n{traceback.format_exc()}",

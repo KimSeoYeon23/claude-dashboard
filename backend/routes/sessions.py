@@ -1,11 +1,12 @@
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 
 from ..services.paths import resolve_paths
 from ..services.cache import cached
 from ..services.loaders import load_history, find_session_file
 from ..services.parsers import parse_session_detail
+from ..services.auth import resolve_api_user
 
 router = APIRouter()
 
@@ -35,9 +36,12 @@ def api_sessions(
     search: Optional[str] = Query(None),
     page: int = Query(1),
     limit: int = Query(30),
+    authorization: str | None = Header(None),
 ):
-    paths = resolve_paths(user)
-    history = cached(f"history:{user or 'me'}", paths["history_file"], load_history)
+    resolved_user = resolve_api_user(user, authorization)
+    cache_user = resolved_user or "me"
+    paths = resolve_paths(resolved_user)
+    history = cached(f"history:{cache_user}", paths["history_file"], load_history)
     if history is None:
         raise HTTPException(status_code=404, detail="history.jsonl not found")
 
@@ -76,13 +80,18 @@ def api_sessions(
 
 
 @router.get("/api/session/{session_id}")
-def api_session_detail(session_id: str, user: Optional[str] = Query(None)):
-    paths = resolve_paths(user)
+def api_session_detail(
+    session_id: str,
+    user: Optional[str] = Query(None),
+    authorization: str | None = Header(None),
+):
+    resolved_user = resolve_api_user(user, authorization)
+    paths = resolve_paths(resolved_user)
     fp = find_session_file(session_id, paths["projects_dir"])
     if fp is None:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
 
-    cache_key = f"session:{user or 'me'}:{session_id}"
+    cache_key = f"session:{resolved_user or 'me'}:{session_id}"
     detail = cached(cache_key, fp, parse_session_detail)
     if detail is None:
         raise HTTPException(status_code=500, detail="Failed to parse session")

@@ -9,6 +9,7 @@ static/
 # Python
 __pycache__/
 *.pyc
+.venv/
 .env
 
 # Claude

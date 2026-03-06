@@ -1,5 +1,7 @@
 import secrets
+from typing import Optional
 
+from fastapi import HTTPException
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
@@ -29,6 +31,40 @@ def resolve_email(username: str) -> str | None:
         conn.execute("SELECT email FROM users WHERE username = %s", (username,))
         row = conn.fetchone()
     return row["email"] if row and row["email"] else None
+
+
+def resolve_api_user(requested_user: Optional[str], authorization: Optional[str]) -> Optional[str]:
+    """읽기 API에서 사용할 사용자 해석.
+
+    - Bearer 토큰이 있으면 해당 유저를 신뢰한다.
+    - requested_user가 있으면 토큰 유저와 반드시 일치해야 한다.
+    - DATA_DIR 환경(멀티유저 동기화 서버)에서는 익명 조회를 허용하지 않는다.
+    - 로컬 단일 유저 모드에서는 익명 조회를 허용한다.
+    """
+    authenticated_user: Optional[str] = None
+
+    if authorization:
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Invalid authorization header")
+        token = authorization[7:]
+        authenticated_user = resolve_token(token)
+        if not authenticated_user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+    if requested_user:
+        if not authenticated_user:
+            raise HTTPException(status_code=401, detail="Authorization required")
+        if requested_user != authenticated_user:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        return authenticated_user
+
+    if authenticated_user:
+        return authenticated_user
+
+    if DATA_DIR:
+        raise HTTPException(status_code=401, detail="Authorization required")
+
+    return None
 
 
 def register_user(username: str, email: str = "") -> dict:

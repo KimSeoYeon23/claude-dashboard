@@ -1,16 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
-import { fetchApi, type SessionDetail as SessionDetailType } from "../api";
-
-function buildApiPath(path: string) {
-  const match = document.cookie.match(/(?:^|; )username=([^;]*)/);
-  const username = match ? decodeURIComponent(match[1]) : null;
-  if (username) {
-    const sep = path.includes("?") ? "&" : "?";
-    return `${path}${sep}user=${encodeURIComponent(username)}`;
-  }
-  return path;
-}
+import { fetchApi, getAuthHeaders, type SessionDetail as SessionDetailType } from "../api";
 
 function AISummary({ sessionId }: { sessionId: string }) {
   const [summary, setSummary] = useState<string | null>(null);
@@ -36,7 +26,10 @@ function AISummary({ sessionId }: { sessionId: string }) {
 
     try {
       const url = `/api/session/${sessionId}/summary/stream${regen ? "?regenerate=true" : ""}`;
-      const res = await fetch(buildApiPath(url), { signal });
+      const res = await fetch(url, {
+        signal,
+        headers: getAuthHeaders(),
+      });
       if (!res.ok) throw new Error("stream failed");
       const reader = res.body?.getReader();
       if (!reader) throw new Error("no reader");

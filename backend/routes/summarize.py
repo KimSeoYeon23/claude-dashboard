@@ -2,13 +2,14 @@ import json
 import os
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from ..db import get_conn
 from ..services.paths import resolve_paths
 from ..services.loaders import find_session_file
 from ..services.parsers import parse_session_detail
+from ..services.auth import resolve_api_user
 
 router = APIRouter()
 
@@ -57,13 +58,18 @@ def _build_conversation(detail: dict) -> tuple[str, list[str], list[str]]:
 
 
 @router.get("/api/session/{session_id}/summary")
-def api_session_summary(session_id: str, user: Optional[str] = Query(None)):
+def api_session_summary(
+    session_id: str,
+    user: Optional[str] = Query(None),
+    authorization: str | None = Header(None),
+):
     """캐시된 요약 반환. 없으면 404."""
+    resolved_user = resolve_api_user(user, authorization) or ""
     try:
         with get_conn() as cursor:
             cursor.execute(
-                "SELECT summary FROM session_summaries WHERE session_id = %s",
-                (session_id,),
+                "SELECT summary FROM session_summaries WHERE session_id = %s AND username = %s",
+                (session_id, resolved_user),
             )
             row = cursor.fetchone()
             if row:
@@ -78,13 +84,15 @@ def api_session_summary_stream(
     session_id: str,
     user: Optional[str] = Query(None),
     regenerate: bool = Query(False),
+    authorization: str | None = Header(None),
 ):
     """SSE 스트리밍으로 요약 생성"""
+    resolved_user = resolve_api_user(user, authorization)
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
 
-    paths = resolve_paths(user)
+    paths = resolve_paths(resolved_user)
     fp = find_session_file(session_id, paths["projects_dir"])
     if fp is None:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
@@ -123,7 +131,7 @@ def api_session_summary_stream(
                 cursor.execute(
                     "INSERT INTO session_summaries (session_id, username, summary) VALUES (%s, %s, %s) "
                     "ON DUPLICATE KEY UPDATE summary = VALUES(summary)",
-                    (session_id, user or "", summary),
+                    (session_id, resolved_user or "", summary),
                 )
         except Exception:
             pass
