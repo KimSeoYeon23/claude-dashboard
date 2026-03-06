@@ -51,13 +51,14 @@ async def api_sync(
 
         if projects:
             content = await projects.read()
-            buf = BytesIO(content)
-            with tarfile.open(fileobj=buf, mode="r:gz") as tar:
-                # 안전 체크: 경로 탈출 방지
-                for member in tar.getmembers():
-                    if member.name.startswith("/") or ".." in member.name:
-                        raise HTTPException(status_code=400, detail="Invalid tar member path")
-                tar.extractall(path=str(user_dir / "projects"))
+            if content:
+                buf = BytesIO(content)
+                with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+                    # 안전 체크: 경로 탈출 방지
+                    for member in tar.getmembers():
+                        if member.name.startswith("/") or ".." in member.name:
+                            raise HTTPException(status_code=400, detail="Invalid tar member path")
+                    tar.extractall(path=str(user_dir / "projects"))
     except Exception as e:
         notify_user(username, "sync_error", {
             "message": f"파일 저장 실패\n\n{traceback.format_exc()}",
