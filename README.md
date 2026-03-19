@@ -14,6 +14,9 @@ Claude Code를 계속 쓰다 보니 세션은 쌓이는데, 정작 내가 뭘 �
 ## 뭘 볼 수 있나
 
 - 날짜별, 시간대별 활동량과 모델별 토큰 사용량
+- **5h/7d 사용량 게이지** — output + cache creation 기준, 실제 Claude 한도와 일치
+- **플랜별 한도 자동 적용** — Pro / Max 5x / Max 20x, UI에서 직접 설정 가능
+- **7d 리셋 시간** — 유저별 고정 요일/시각 설정 지원 (UI 또는 환경변수)
 - 지금 돌고 있는 에이전트 목록과 CPU/MEM 사용량
 - 최근 에이전트 활동 타임라인
 - 세션별 메시지 흐름, 도구 호출 횟수, 수정한 파일
@@ -205,6 +208,11 @@ if (Test-Path $historyPath) { $curlArgs += '-F', "history=@$historyPath" }
 | GET | `/api/auth/google/client-id` | Google Client ID 조회 |
 | POST | `/api/register` | 유저 등록 |
 | GET | `/api/me` | 내 정보 (Bearer) |
+| GET | `/api/me/settings` | 내 플랜·리셋 설정 조회 (Bearer) |
+| PUT | `/api/me/settings` | 내 플랜·리셋 설정 저장 (Bearer) |
+| GET | `/api/usage/gauge` | 5h/7d 사용량 게이지 (Bearer) |
+| GET | `/api/usage/predict` | 리셋 시점 사용량 예측 (Bearer) |
+| GET | `/api/usage/plan-recommend` | 플랜 추천 (Bearer) |
 | GET | `/api/session/:id/summary` | 세션 AI 요약 (캐시, Bearer 인증) |
 | GET | `/api/session/:id/summary/stream` | 세션 AI 요약 (SSE 스트리밍 생성, Bearer 인증) |
 | POST | `/api/report-error` | 프론트엔드 에러 리포팅 |
@@ -225,6 +233,12 @@ if (Test-Path $historyPath) { $curlArgs += '-F', "history=@$historyPath" }
 | `MYSQL_USER` | MySQL 유저 | - |
 | `MYSQL_PASSWORD` | MySQL 비밀번호 | - |
 | `MYSQL_DATABASE` | MySQL 데이터베이스 | - |
+| `CURRENT_PLAN` | 기본 플랜 (`Pro` / `Max 5x` / `Max 20x`) | - |
+| `USER_PLANS` | 유저별 플랜 (`user1:Max 5x,user2:Pro`) | - |
+| `RESET_WEEKDAY` | 7d 리셋 요일 (0=월~6=일, -1=rolling) | `-1` |
+| `RESET_HOUR` | 7d 리셋 시각 (현지 시간 기준) | `14` |
+| `RESET_TZ_OFFSET` | 시간대 오프셋 (UTC+N) | `9` |
+| `USER_RESETS` | 유저별 리셋 (`user:요일:시:UTC오프셋`) | - |
 
 ## 라이선스
 
