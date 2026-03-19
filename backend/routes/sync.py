@@ -34,9 +34,19 @@ def replace_projects_from_archive(projects_dir: Path, content: bytes):
             if not str(member_path).startswith(str(resolved_base)):
                 raise HTTPException(status_code=400, detail="Invalid tar member path")
 
-        shutil.rmtree(projects_dir, ignore_errors=True)
-        projects_dir.mkdir(parents=True, exist_ok=True)
-        tar.extractall(path=str(projects_dir), filter="data")
+        # 임시 디렉토리에 먼저 추출 → 성공 시에만 기존 디렉토리 교체
+        # (추출 실패 시 기존 데이터 보존)
+        tmp_dir = projects_dir.parent / (projects_dir.name + ".tmp")
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            tar.extractall(path=str(tmp_dir))
+        except Exception:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            raise
+
+    shutil.rmtree(projects_dir, ignore_errors=True)
+    tmp_dir.rename(projects_dir)
 
 
 @router.post("/api/sync")
