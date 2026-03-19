@@ -1,5 +1,8 @@
 import json
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 def load_stats(fp: Path):
@@ -9,14 +12,20 @@ def load_stats(fp: Path):
 
 def load_history(fp: Path):
     entries = []
+    bad_lines = 0
     with open(fp, encoding="utf-8") as f:
-        for line in f:
+        for line_no, line in enumerate(f, 1):
             line = line.strip()
             if line:
                 try:
                     entries.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
+                except json.JSONDecodeError as e:
+                    bad_lines += 1
+                    logger.warning(f"Invalid JSON at {fp}:{line_no}: {e}")
+                    if bad_lines > 100:
+                        raise RuntimeError(f"Too many parse errors in {fp}")
+    if bad_lines > 0:
+        logger.warning(f"Loaded {len(entries)} entries from {fp} ({bad_lines} errors)")
     return entries
 
 

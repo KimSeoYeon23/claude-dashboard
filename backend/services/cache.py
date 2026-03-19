@@ -1,6 +1,7 @@
 from pathlib import Path
 
 _cache: dict = {}
+MAX_CACHE_SIZE = 100
 
 
 def cached(key: str, filepath: Path, loader):
@@ -11,5 +12,7 @@ def cached(key: str, filepath: Path, loader):
     if key in _cache and _cache[key]["mtime"] == mtime:
         return _cache[key]["data"]
     data = loader(filepath)
+    if len(_cache) >= MAX_CACHE_SIZE:
+        del _cache[next(iter(_cache))]
     _cache[key] = {"mtime": mtime, "data": data}
     return data

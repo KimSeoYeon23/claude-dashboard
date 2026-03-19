@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 // ── Cookie helpers ──
 
 function setCookie(name: string, value: string, maxAge: number) {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Strict${location.protocol === 'https:' ? '; Secure' : ''}`;
 }
 
 function getCookie(name: string): string | null {
@@ -12,7 +12,7 @@ function getCookie(name: string): string | null {
 }
 
 function deleteCookie(name: string) {
-  document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
+  document.cookie = `${name}=; path=/; max-age=0; SameSite=Strict${location.protocol === 'https:' ? '; Secure' : ''}`;
 }
 
 // ── Constants ──

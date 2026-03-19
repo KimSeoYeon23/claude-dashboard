@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../auth";
@@ -11,12 +11,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   // 이미 로그인 상태면 /setup으로 redirect
-  if (auth.token) {
-    navigate("/setup", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (auth.token) {
+      navigate("/setup", { replace: true });
+    }
+  }, [auth.token, navigate]);
 
-  async function handleGoogleLogin(idToken: string) {
+  const handleGoogleLogin = useCallback(async (idToken: string) => {
     setError("");
     setLoading(true);
     try {
@@ -32,7 +33,7 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [auth, navigate]);
 
   return (
     <div className="flex min-h-[calc(100vh-3rem)] items-center justify-center">

@@ -1,4 +1,6 @@
+import os
 import tarfile
+import tempfile
 import traceback
 from io import BytesIO
 from pathlib import Path
@@ -21,8 +23,12 @@ def replace_projects_from_archive(projects_dir: Path, content: bytes):
 
     buf = BytesIO(content)
     with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+        resolved_base = projects_dir.resolve()
         for member in tar.getmembers():
-            if member.name.startswith("/") or ".." in member.name:
+            if member.name.startswith("/"):
+                raise HTTPException(status_code=400, detail="Invalid tar member path")
+            member_path = (projects_dir / member.name).resolve()
+            if not str(member_path).startswith(str(resolved_base)):
                 raise HTTPException(status_code=400, detail="Invalid tar member path")
 
         shutil.rmtree(projects_dir, ignore_errors=True)
@@ -62,11 +68,27 @@ async def api_sync(
     try:
         if stats:
             content = await stats.read()
-            (user_dir / "stats-cache.json").write_bytes(content)
+            tmp_fd, tmp_path = tempfile.mkstemp(dir=str(user_dir))
+            try:
+                os.write(tmp_fd, content)
+                os.close(tmp_fd)
+                os.replace(tmp_path, str(user_dir / "stats-cache.json"))
+            except Exception:
+                os.close(tmp_fd) if not os.get_inheritable(tmp_fd) else None
+                os.unlink(tmp_path) if os.path.exists(tmp_path) else None
+                raise
 
         if history:
             content = await history.read()
-            (user_dir / "history.jsonl").write_bytes(content)
+            tmp_fd, tmp_path = tempfile.mkstemp(dir=str(user_dir))
+            try:
+                os.write(tmp_fd, content)
+                os.close(tmp_fd)
+                os.replace(tmp_path, str(user_dir / "history.jsonl"))
+            except Exception:
+                os.close(tmp_fd) if not os.get_inheritable(tmp_fd) else None
+                os.unlink(tmp_path) if os.path.exists(tmp_path) else None
+                raise
 
         if projects_mode == "replace":
             content = await projects.read() if projects else b""

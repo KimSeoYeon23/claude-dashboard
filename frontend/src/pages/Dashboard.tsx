@@ -21,6 +21,9 @@ import {
 } from "../api";
 import { useAuth } from "../auth";
 import StatCard from "../components/StatCard";
+import UsageGauge from "../components/UsageGauge";
+import UsagePrediction from "../components/UsagePrediction";
+import PlanRecommend from "../components/PlanRecommend";
 import Loading from "../components/Loading";
 import ErrorMessage from "../components/ErrorMessage";
 import {
@@ -263,6 +266,17 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Usage Monitor */}
+      <div className="mb-8">
+        <UsageGauge isDemo={isDemo} />
+      </div>
+
+      {/* Prediction + Plan Recommend */}
+      <div className="mb-8 grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <UsagePrediction isDemo={isDemo} />
+        <PlanRecommend isDemo={isDemo} />
+      </div>
 
       {/* Stats Cards */}
       <div className="mb-8 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
