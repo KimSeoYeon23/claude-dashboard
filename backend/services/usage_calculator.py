@@ -227,16 +227,24 @@ def calculate_plan_recommend(entries: list, username: str | None = None) -> dict
     else:
         pattern = "power"
 
-    # 유저 플랜 → CURRENT_PLAN → LIMIT_5H 추정 순으로 현재 플랜 결정
-    plan_from_config = get_user_plan(username)
-    if plan_from_config in ("Pro", "Max 5x", "Max 20x"):
+    # DB → env → 한도 역산 순으로 현재 플랜 결정
+    plan_from_db = None
+    if username:
+        try:
+            db_settings = get_user_settings(username)
+            plan_from_db = db_settings.get("plan") or None
+        except Exception:
+            pass
+
+    plan_from_config = plan_from_db or get_user_plan(username)
+    if plan_from_config in _PLAN_LIMITS:
         current_plan = plan_from_config
-    elif limit_5h <= 50_000_000:
-        current_plan = "Pro"
-    elif limit_5h <= 120_000_000:
-        current_plan = "Max 5x"
     else:
-        current_plan = "Max 20x"
+        # 한도로 역산: 정확히 일치하는 플랜 우선, 아니면 범위로
+        current_plan = next(
+            (name for name, limits in _PLAN_LIMITS.items() if limits["5h"] == limit_5h),
+            "Pro" if limit_5h <= 5_000_000 else "Max 5x" if limit_5h <= 25_000_000 else "Max 20x",
+        )
 
     recommended = None
     for plan in PLANS:
