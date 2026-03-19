@@ -1,6 +1,7 @@
 import secrets
 from typing import Optional
 
+import pymysql
 from fastapi import HTTPException
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
@@ -149,7 +150,7 @@ def google_login(token_str: str) -> dict:
 
     google_id = idinfo["sub"]
     email = idinfo.get("email", "")
-    name = idinfo.get("name", "")
+    _ = idinfo.get("name", "")
 
     preferred = email.split("@")[0] if email else None
 
@@ -188,10 +189,21 @@ def google_login(token_str: str) -> dict:
             conn.execute("SELECT id FROM users WHERE username = %s", (username,))
 
         app_token = secrets.token_urlsafe(32)
-        conn.execute(
-            "INSERT INTO users (username, token, email, google_id) VALUES (%s, %s, %s, %s)",
-            (username, app_token, email, google_id),
-        )
+        try:
+            conn.execute(
+                "INSERT INTO users (username, token, email, google_id) VALUES (%s, %s, %s, %s)",
+                (username, app_token, email, google_id),
+            )
+        except pymysql.err.IntegrityError:
+            # 경쟁 조건으로 중복 INSERT 시 기존 유저 반환
+            conn.execute(
+                "SELECT username, token FROM users WHERE google_id = %s OR email = %s",
+                (google_id, email),
+            )
+            existing = conn.fetchone()
+            if existing:
+                return {"ok": True, "username": existing["username"], "token": existing["token"]}
+            raise
 
     return {"ok": True, "username": username, "token": app_token}
 
@@ -206,14 +218,23 @@ def _maybe_rename(conn, old: str, preferred: str | None) -> str:
     if conn.fetchone():
         return old
 
-    conn.execute(
-        "UPDATE users SET username = %s WHERE username = %s", (preferred, old)
-    )
-
+    # 파일시스템 rename 먼저 시도 → 성공 시에만 DB 커밋
+    renamed = False
     if DATA_DIR:
         old_dir = DATA_DIR / old
         new_dir = DATA_DIR / preferred
         if old_dir.exists() and not new_dir.exists():
             old_dir.rename(new_dir)
+            renamed = True
+
+    try:
+        conn.execute(
+            "UPDATE users SET username = %s WHERE username = %s", (preferred, old)
+        )
+    except Exception:
+        # DB 업데이트 실패 시 파일시스템 롤백
+        if renamed and DATA_DIR:
+            (DATA_DIR / preferred).rename(DATA_DIR / old)
+        raise
 
     return preferred

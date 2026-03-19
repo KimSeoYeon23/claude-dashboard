@@ -46,17 +46,15 @@ def analyze_history(history_file: Path, last_n: int = 5) -> list[dict]:
                 "message": f"Claude가 응답하지 않음 (0턴, {duration_ms}ms)",
             })
 
-        # 3. 비정상 종료: display에 에러 키워드 포함
-        error_keywords = ["error", "crash", "timeout", "SIGTERM", "killed"]
-        display_lower = display.lower()
-        if any(kw in display_lower for kw in error_keywords):
-            # claude_error와 중복 방지
-            if exit_status != "error":
-                issues.append({
-                    "type": "claude_error",
-                    "sessionId": session_id,
-                    "message": f"에러 감지: {display}",
-                })
+        # 3. 비정상 종료: display에 에러 키워드 포함 (대소문자 구분으로 오탐 최소화)
+        case_insensitive_keywords = ["crash", "timeout", "sigterm", "killed", "segmentation fault"]
+        is_abnormal = any(kw in display.lower() for kw in case_insensitive_keywords)
+        if is_abnormal and exit_status != "error":
+            issues.append({
+                "type": "claude_error",
+                "sessionId": session_id,
+                "message": f"에러 감지: {display}",
+            })
 
     return issues
 

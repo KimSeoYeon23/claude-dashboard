@@ -48,9 +48,9 @@ export function projectShortName(path: string | null | undefined): string {
   if (!path) return "";
   const parts = path.replace(/^-/, "").split("-");
   if (parts.length <= 2) return path;
-  const idx = parts.indexOf("kimseoyeon");
-  if (idx >= 0 && idx + 1 < parts.length) {
-    return parts.slice(idx + 1).join("-");
+  // "-Users-<username>-..." 형식에서 username 이후 부분을 반환
+  if (parts[0] === "Users" && parts.length > 2) {
+    return parts.slice(2).join("-");
   }
   return parts.slice(-2).join("-");
 }

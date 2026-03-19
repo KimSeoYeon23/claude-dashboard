@@ -70,7 +70,11 @@ def notify_user(username: str, ntype: str, context: dict):
         return
 
     subject = template["subject"]
-    body = template["body"].format(**context)
+    try:
+        body = template["body"].format(**context)
+    except KeyError as e:
+        logger.warning(f"Notification template key missing for {ntype}: {e}")
+        body = template["body"].format_map({**{k: "" for k in ["sessionId", "message"]}, **context})
     emailed = False
 
     try:

@@ -48,11 +48,6 @@ def init_db(max_retries: int = 30, delay: float = 2.0):
                         PRIMARY KEY (session_id, username)
                     )
                 """)
-                cursor.execute("""
-                    ALTER TABLE session_summaries
-                    DROP PRIMARY KEY,
-                    ADD PRIMARY KEY (session_id, username)
-                """)
                 # users 테이블에 설정 컬럼 추가 (이미 있으면 무시)
                 for col_sql in [
                     "ALTER TABLE users ADD COLUMN reset_weekday  TINYINT DEFAULT -1",
@@ -72,12 +67,6 @@ def init_db(max_retries: int = 30, delay: float = 2.0):
             if attempt == max_retries:
                 raise
             time.sleep(delay)
-        except pymysql.err.ProgrammingError as e:
-            # 이미 원하는 PK 구조인 경우 ALTER가 실패할 수 있다.
-            if "Multiple primary key defined" in str(e):
-                logger.info("session_summaries PK already migrated")
-                return
-            raise
 
 
 @contextmanager

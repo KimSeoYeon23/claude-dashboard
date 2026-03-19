@@ -70,6 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const expires = new Date(expiresStr).getTime();
       if (Date.now() >= expires) {
+        // 백그라운드 탭이면 조용히 로그아웃 (confirm 팝업 차단 방지)
+        if (document.hidden) {
+          logout();
+          return;
+        }
         const extend = window.confirm("로그인이 만료되었습니다. 연장하시겠습니까?");
         if (extend) {
           const currentToken = getCookie("token");

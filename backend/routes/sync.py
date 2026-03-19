@@ -27,13 +27,16 @@ def replace_projects_from_archive(projects_dir: Path, content: bytes):
         for member in tar.getmembers():
             if member.name.startswith("/"):
                 raise HTTPException(status_code=400, detail="Invalid tar member path")
+            # 심볼릭 링크·하드 링크 차단
+            if member.issym() or member.islnk():
+                raise HTTPException(status_code=400, detail="Tar links not allowed")
             member_path = (projects_dir / member.name).resolve()
             if not str(member_path).startswith(str(resolved_base)):
                 raise HTTPException(status_code=400, detail="Invalid tar member path")
 
         shutil.rmtree(projects_dir, ignore_errors=True)
         projects_dir.mkdir(parents=True, exist_ok=True)
-        tar.extractall(path=str(projects_dir))
+        tar.extractall(path=str(projects_dir), filter="data")
 
 
 @router.post("/api/sync")

@@ -1,6 +1,7 @@
 import logging
 import re
 import traceback
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -14,9 +15,14 @@ from .services.notifier import notify_user
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Claude Code Dashboard")
 
-init_db()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Claude Code Dashboard", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
