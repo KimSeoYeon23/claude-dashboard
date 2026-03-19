@@ -169,7 +169,7 @@ export default function Dashboard() {
             예시 데이터입니다. <span className="text-text-primary font-medium">로그인</span>하면 실제 데이터를 볼 수 있습니다.
           </p>
           <Link
-            to="/setup"
+            to="/login"
             className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
           >
             시작하기
