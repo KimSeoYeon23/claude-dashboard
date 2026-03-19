@@ -61,7 +61,7 @@ def resolve_api_user(requested_user: Optional[str], authorization: Optional[str]
     if authenticated_user:
         return authenticated_user
 
-    if DATA_DIR:
+    if DATA_DIR or requested_user:
         raise HTTPException(status_code=401, detail="Authorization required")
 
     return None
@@ -94,6 +94,43 @@ def get_user_info(token: str) -> dict | None:
     if not username:
         return None
     return {"username": username, "email": resolve_email(username) or ""}
+
+
+def get_user_settings(username: str) -> dict:
+    """유저 설정 조회 (plan, reset 시간)"""
+    with get_conn() as conn:
+        conn.execute(
+            "SELECT plan, reset_weekday, reset_hour, reset_tz_offset FROM users WHERE username = %s",
+            (username,),
+        )
+        row = conn.fetchone()
+    if not row:
+        return {}
+    return {
+        "plan": row["plan"] or "",
+        "reset_weekday": row["reset_weekday"] if row["reset_weekday"] is not None else -1,
+        "reset_hour": row["reset_hour"] if row["reset_hour"] is not None else 14,
+        "reset_tz_offset": row["reset_tz_offset"] if row["reset_tz_offset"] is not None else 9,
+    }
+
+
+def update_user_settings(username: str, plan: str | None, reset_weekday: int | None, reset_hour: int | None, reset_tz_offset: int | None) -> dict:
+    """유저 설정 저장"""
+    fields, values = [], []
+    if plan is not None:
+        fields.append("plan = %s"); values.append(plan)
+    if reset_weekday is not None:
+        fields.append("reset_weekday = %s"); values.append(reset_weekday)
+    if reset_hour is not None:
+        fields.append("reset_hour = %s"); values.append(reset_hour)
+    if reset_tz_offset is not None:
+        fields.append("reset_tz_offset = %s"); values.append(reset_tz_offset)
+    if not fields:
+        return {"ok": True}
+    values.append(username)
+    with get_conn() as conn:
+        conn.execute(f"UPDATE users SET {', '.join(fields)} WHERE username = %s", values)
+    return {"ok": True}
 
 
 def google_login(token_str: str) -> dict:

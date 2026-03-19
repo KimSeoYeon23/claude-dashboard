@@ -19,7 +19,7 @@ const features = [
   },
   {
     title: "Multi-user Sync",
-    desc: "팀원 각자의 머신에서 데이터를 중앙 서버로 자동 동기화",
+    desc: "Stop 훅으로 세션 종료 시마다 데이터를 중앙 서버로 자동 동기화",
     icon: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
     color: "text-purple",
     bg: "bg-purple/10",
@@ -44,8 +44,8 @@ export default function Landing() {
           <span className="text-accent glow-accent">&gt;_</span> Claude Code Dashboard
         </div>
         <p className="max-w-xl text-lg text-text-secondary">
-          Claude Code 사용 현황을 실시간으로 모니터링하고,
-          팀 전체의 AI 활용도를 한곳에서 관리하세요.
+          내 Claude Code 사용 현황을 실시간으로 모니터링하고,
+          대화 히스토리와 토큰 사용 패턴을 한곳에서 확인하세요.
         </p>
         <div className="flex gap-3">
           <Link

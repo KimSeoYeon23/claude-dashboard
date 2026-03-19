@@ -95,6 +95,55 @@ export interface SessionDetail {
   subagentIds: string[];
 }
 
+// ── Usage Types ──
+
+export interface UsageWindow {
+  used_tokens: number;
+  limit_tokens: number;
+  percentage: number;
+  reset_at: string | null;
+  remaining_seconds: number;
+}
+
+export interface UsageGaugeData {
+  window_5h: UsageWindow;
+  window_7d: UsageWindow;
+}
+
+export interface UsagePredictData {
+  current_rate_per_hour: number;
+  predicted_5h_at_reset: number;
+  predicted_7d_at_reset: number;
+  will_hit_limit_5h: boolean;
+  will_hit_limit_7d: boolean;
+  estimated_limit_time_5h: string | null;
+  estimated_limit_time_7d: string | null;
+}
+
+export interface HeatmapCell {
+  day: number;
+  hour: number;
+  tokens: number;
+  sessions: number;
+}
+
+export interface UsageHeatmapData {
+  heatmap: HeatmapCell[];
+  period_days: number;
+}
+
+export interface PlanRecommendData {
+  current_plan: string;
+  avg_daily_tokens: number;
+  peak_daily_tokens: number;
+  recommendation: {
+    plan: string;
+    reason: string;
+    monthly_savings: number;
+  } | null;
+  usage_pattern: string;
+}
+
 // ── Axios instance ──
 
 import axios, { AxiosHeaders } from "axios";

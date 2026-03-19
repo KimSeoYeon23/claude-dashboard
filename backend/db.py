@@ -53,6 +53,18 @@ def init_db(max_retries: int = 30, delay: float = 2.0):
                     DROP PRIMARY KEY,
                     ADD PRIMARY KEY (session_id, username)
                 """)
+                # users 테이블에 설정 컬럼 추가 (이미 있으면 무시)
+                for col_sql in [
+                    "ALTER TABLE users ADD COLUMN reset_weekday  TINYINT DEFAULT -1",
+                    "ALTER TABLE users ADD COLUMN reset_hour     TINYINT DEFAULT 14",
+                    "ALTER TABLE users ADD COLUMN reset_tz_offset TINYINT DEFAULT 9",
+                    "ALTER TABLE users ADD COLUMN plan           VARCHAR(20) DEFAULT ''",
+                ]:
+                    try:
+                        cursor.execute(col_sql)
+                    except pymysql.err.OperationalError as col_err:
+                        if "Duplicate column name" not in str(col_err):
+                            raise
             logger.info("MySQL 테이블 초기화 완료")
             return
         except pymysql.err.OperationalError as e:
